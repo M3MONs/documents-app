@@ -10,4 +10,8 @@ class AuthProvider(ABC):
     async def authenticate(self, db: AsyncSession, **kwargs) -> User | None:
         """Authenticate a user and return the User object if successful."""
         pass
-        
+    
+    @abstractmethod
+    async def register(self, db: AsyncSession, **kwargs) -> User | None:
+        """Register a new user and return the User object if successful."""
+        pass

@@ -1,5 +1,5 @@
 from core.providers.local_provider import LocalAuthProvider
-from server.models.user import User
+from models.user import User
 
 
 class AuthService:

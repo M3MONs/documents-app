@@ -3,6 +3,8 @@ from jose import JWTError, jwt
 from typing import Optional
 from passlib.context import CryptContext
 from core.config import settings
+from fastapi import HTTPException, status
+import logging
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -40,3 +42,40 @@ def verify_token(token: str, secret_key: str, token_type: str = "access") -> dic
         return payload
     except JWTError:
         raise ValueError("Invalid or expired token")
+
+async def validate_access_token(token: str) -> dict:
+    try:
+        payload = verify_token(token, settings.JWT_SECRET_KEY)
+        if not payload or not payload.get("sub"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid access token"
+            )
+        return payload
+    except Exception as e:
+        logging.error(f"Access token validation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid access token"
+        )
+
+async def validate_refresh_token(token: str) -> dict:
+    try:
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token missing"
+            )
+        payload = verify_token(token, settings.JWT_SECRET_KEY, token_type="refresh")
+        if not payload or not payload.get("sub"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
+        return payload
+    except Exception as e:
+        logging.error(f"Refresh token validation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token"
+        )

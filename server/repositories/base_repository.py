@@ -26,7 +26,7 @@ class BaseRepository:
     ) -> Sequence[M]:
         query = select(model).offset(offset).limit(limit)
         if ordering:
-            query = query.order_by(ordering)
+            query = query.order_by(getattr(model, ordering))
         result = await db.execute(query)
         return result.scalars().all()
 

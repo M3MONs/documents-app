@@ -1,6 +1,7 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from schemas.auth import LoginResponse, LogoutResponse
@@ -28,16 +29,24 @@ async def get_current_user(
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
+class LoginPayload(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50, description="The username of the user")
+    password: str = Field(..., min_length=8, max_length=100, description="The password of the user")
+    provider: str = Field(default="local", description="The authentication provider")
+
 @router.post("/login", response_model=LoginResponse)
 async def login(
-    provider: str = "local",
-    username: str = "",
-    password: str = "",
+    login_payload: LoginPayload,
     response: Response = Response(),
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
     try:
-        user = await AuthService.authenticate(provider, db, username=username, password=password)
+        user = await AuthService.authenticate(
+            provider_name=login_payload.provider,
+            db=db,
+            username=login_payload.username,
+            password=login_payload.password
+        )
 
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
@@ -74,21 +83,29 @@ async def refresh_token(
     return AuthService.create_login_response(user, response)
 
 
+class RegisterPayload(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50, description="The desired username")
+    email: str | None = Field(None, description="The user's email address")
+    password: str = Field(..., min_length=8, max_length=100, description="The desired password")
+
 @router.post("/register", response_model=LoginResponse)
 async def register(
-    username: str,
-    email: str,
-    password: str,
+    register_payload: RegisterPayload,
     response: Response = Response(),
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
     try:
-        user = await UserRepository.get_by_username(db, username=username)
+        user = await UserRepository.get_by_username(db, username=register_payload.username)
 
         if user:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
 
-        user = await AuthService.providers["local"].register(db, username=username, email=email, password=password)
+        user = await AuthService.providers["local"].register(
+            db,
+            username=register_payload.username,
+            email=register_payload.email if register_payload.email else "",
+            password=register_payload.password
+        )
 
         if not user:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration failed")

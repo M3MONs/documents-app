@@ -1,17 +1,32 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
-from core.config import settings
 from schemas.auth import LoginResponse, LogoutResponse
 from models.user import User
 from repositories.base_repository import BaseRepository
 from repositories.user_repository import UserRepository
 from services.auth_service import AuthService
-from core.security import create_access_token, create_refresh_token, verify_token
+from core.security import validate_access_token, validate_refresh_token
+
+security = HTTPBearer()
+
+async def get_current_user(
+        credentials: HTTPAuthorizationCredentials = Depends(security),
+        db: AsyncSession = Depends(get_db),
+    ) -> User:
+        token = credentials.credentials
+        payload = await validate_access_token(token)
+        user_id = payload.get("sub")
+
+        user = await BaseRepository.get_by_id(model=User, db=db, entity_id=str(user_id))
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+        return user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
 
 @router.post("/login", response_model=LoginResponse)
 async def login(
@@ -27,23 +42,7 @@ async def login(
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-        access_token = create_access_token(subject=str(user.id))
-        refresh_token = create_refresh_token(subject=str(user.id))
-
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            secure=True,
-            samesite="lax",
-            max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        )
-
-        return LoginResponse(
-            access_token=access_token,
-            token_type="bearer",
-            user={"id": user.id, "username": user.username, "email": user.email},
-        )
+        return AuthService.create_login_response(user, response)
     except ValueError as e:
         logging.error(f"Authentication error: {e}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
@@ -65,38 +64,14 @@ async def refresh_token(
     db: AsyncSession = Depends(get_db),
     response: Response = Response(),
 ) -> LoginResponse:
-    try:
-        if not refresh_token:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
-
-        payload = verify_token(refresh_token, settings.JWT_SECRET_KEY, token_type="refresh")
-        user_id = payload.get("sub")
-
-        user = await BaseRepository.get_by_id(model=User, db=db, entity_id=str(user_id))
-
-        if not user_id or not user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
-
-        access_token = create_access_token(subject=user_id)
-        new_refresh_token = create_refresh_token(subject=user_id)
-
-        response.set_cookie(
-            key="refresh_token",
-            value=new_refresh_token,
-            httponly=True,
-            secure=True,
-            samesite="lax",
-            max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        )
-
-        return LoginResponse(
-            access_token=access_token,
-            token_type="bearer",
-            user={"id": user_id, "username": user.username, "email": user.email},
-        )
-    except Exception as e:
-        logging.error(f"Error refreshing token: {e}")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    payload = await validate_refresh_token(refresh_token)
+    user_id = payload.get("sub")
+    
+    user = await BaseRepository.get_by_id(model=User, db=db, entity_id=str(user_id))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    
+    return AuthService.create_login_response(user, response)
 
 
 @router.post("/register", response_model=LoginResponse)
@@ -118,23 +93,7 @@ async def register(
         if not user:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration failed")
 
-        access_token = create_access_token(subject=str(user.id))
-        refresh_token = create_refresh_token(subject=str(user.id))
-
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            secure=True,
-            samesite="lax",
-            max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        )
-
-        return LoginResponse(
-            access_token=access_token,
-            token_type="bearer",
-            user={"id": user.id, "username": user.username, "email": user.email},
-        )
+        return AuthService.create_login_response(user, response)
     except Exception as e:
         logging.error(f"Registration error: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

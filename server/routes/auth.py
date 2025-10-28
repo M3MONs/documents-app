@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,10 +59,14 @@ async def logout(response: Response) -> LogoutResponse:
 
 @router.get("/refresh")
 async def refresh_token(
+    request: Request,
     response: Response,
-    refresh_token: str = Depends(lambda request: request.cookies.get("refresh_token")),
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token not found")
+    
     payload = await validate_refresh_token(refresh_token)
     user_id = payload.get("sub")
 

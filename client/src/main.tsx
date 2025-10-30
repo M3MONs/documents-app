@@ -9,6 +9,7 @@ import { AuthProvider } from "@/context/AuthContext.tsx";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import NotFoundPage from "@/pages/NotFoundPage/NotFoundPage";
 import { ThemeProvider } from "@/components/theme-provider";
+import AdminPages from "@/pages/Admin/AdminPages";
 
 createRoot(document.getElementById("root")!).render(
     <StrictMode>
@@ -19,6 +20,9 @@ createRoot(document.getElementById("root")!).render(
                         <Route element={<ProtectedRoute />}>
                             <Route path="/" element={<HomePage />} />
                         </Route>
+
+                        <Route path="/admin/*" element={<AdminPages />} />
+
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
                         <Route path="*" element={<NotFoundPage />} />

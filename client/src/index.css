@@ -118,3 +118,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+tr:last-child{
+  border-bottom-style: var(--tw-border-style) !important;
+  border-bottom-width: 1px !important;
+}

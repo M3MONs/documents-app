@@ -10,10 +10,12 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import NotFoundPage from "@/pages/NotFoundPage/NotFoundPage";
 import { ThemeProvider } from "@/components/theme-provider";
 import AdminPages from "@/pages/Admin/AdminPages";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 createRoot(document.getElementById("root")!).render(
     <StrictMode>
         <ThemeProvider>
+            <QueryClientProvider client={new QueryClient()}>
             <AuthProvider>
                 <BrowserRouter>
                     <Routes>
@@ -29,6 +31,7 @@ createRoot(document.getElementById("root")!).render(
                     </Routes>
                 </BrowserRouter>
             </AuthProvider>
+            </QueryClientProvider>
         </ThemeProvider>
     </StrictMode>
 );

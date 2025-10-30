@@ -1,8 +1,7 @@
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "../app-sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from "@/components/ui/breadcrumb";
-import { Link } from "react-router";
+import NavBreadcrumb from "@/components/nav-breadcrumb";
 
 type DashboardLayoutProps = {
     children: React.ReactNode;
@@ -17,15 +16,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }: Dashboard
                     <div className="flex items-center gap-2 px-3">
                         <SidebarTrigger className="-ml-1" />
                         <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-                        <Breadcrumb>
-                            <BreadcrumbList>
-                                <BreadcrumbItem className="hidden md:block">
-                                    <BreadcrumbLink asChild>
-                                        <Link to="/">Home</Link>
-                                    </BreadcrumbLink>
-                                </BreadcrumbItem>
-                            </BreadcrumbList>
-                        </Breadcrumb>
+                        <NavBreadcrumb />
                     </div>
                 </header>
                 <main className="flex-1 overflow-y-auto">{children}</main>

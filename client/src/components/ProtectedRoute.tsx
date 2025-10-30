@@ -8,7 +8,7 @@ type ProtectedRouteProps = {
 const ProtectedRoute = ({ isSuperuser = false }: ProtectedRouteProps) => {
     const { token, user, isLoading } = useAuth();
 
-    if (isLoading) return <div>Loading...</div>;
+    if (isLoading) return <div className="h-full w-full flex justify-center items-center">Loading...</div>;
 
     if (!token || !user?.id) return <Navigate to="/login" replace />;
 

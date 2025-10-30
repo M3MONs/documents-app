@@ -2,6 +2,7 @@ from fastapi import Response
 from core.providers.local_provider import LocalAuthProvider
 from models.user import User
 from schemas.auth import LoginResponse
+from schemas.user import User as UserSchema
 from core.security import create_access_token, create_refresh_token
 from core.config import settings
 
@@ -35,5 +36,5 @@ class AuthService:
         return LoginResponse(
             access_token=access_token,
             token_type="bearer",
-            user={"id": user.id, "username": user.username, "email": user.email},
+            user=UserSchema.model_validate(user)
         )

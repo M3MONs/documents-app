@@ -10,4 +10,12 @@ export default class AdminService {
         });
         return response.data;
     };
+
+    static deactivateUser = async (userId: string) => {
+        await apiClient.delete(`${URL}/users/${userId}`);
+    }
+
+    static activateUser = async (userId: string) => {
+        await apiClient.post(`${URL}/users/${userId}/activate`);
+    }
 }

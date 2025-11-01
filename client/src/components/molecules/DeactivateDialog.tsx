@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "../ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface DeactivateDialogProps {
     isOpen: boolean;
@@ -19,14 +19,14 @@ const DeactivateDialog = ({ isOpen, text, onClose, onConfirm }: DeactivateDialog
                         want to proceed?
                     </DialogDescription>
                 </DialogHeader>
-                <div className="mt-4 flex justify-end gap-2">
+                <DialogFooter className="mt-4 flex justify-end gap-2">
                     <Button variant="outline" onClick={onClose}>
                         Cancel
                     </Button>
                     <Button variant="destructive" onClick={onConfirm}>
                         Deactivate
                     </Button>
-                </div>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );

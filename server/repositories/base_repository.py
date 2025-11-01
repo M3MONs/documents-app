@@ -1,6 +1,8 @@
-from typing import Sequence, TypeVar, Type
-from sqlalchemy import select
+from typing import Sequence, TypeVar, Type, Any
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from schemas.pagination import PaginationResponse
 
 M = TypeVar("M")
 
@@ -22,13 +24,39 @@ class BaseRepository:
 
     @staticmethod
     async def get_paginated(
-        model: Type[M], db: AsyncSession, offset: int = 0, limit: int = 100, ordering: str | None = None
-    ) -> Sequence[M]:
-        query = select(model).offset(offset).limit(limit)
+        model: Type[M],
+        db: AsyncSession,
+        item_schema: Type[Any] | None = None,
+        offset: int = 0,
+        limit: int = 100,
+        ordering: str | None = None,
+        ordering_desc: bool = False,
+        filters: list[tuple[str, Any]] | None = None,
+    ) -> PaginationResponse:
+        query = select(model)
+        total_query = select(func.count()).select_from(model)
+
+        if filters:
+            for field, value in filters:
+                query = query.where(getattr(model, field) == value)
+                total_query = total_query.where(getattr(model, field) == value)
+
         if ordering:
-            query = query.order_by(getattr(model, ordering))
+            column = getattr(model, ordering)
+            query = query.order_by(column.desc() if ordering_desc else column)
+        
+        query = query.offset(offset).limit(limit)
         result = await db.execute(query)
-        return result.scalars().all()
+        total_result = await db.execute(total_query)
+        
+        total = total_result.scalar_one()
+
+        items = result.scalars().all()
+
+        if item_schema:
+            items = [item_schema.from_orm(item) for item in items]
+
+        return PaginationResponse(total=total, items=list(items))
 
     @staticmethod
     async def create(db: AsyncSession, entity: M) -> M:

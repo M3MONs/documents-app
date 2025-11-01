@@ -52,7 +52,15 @@ export const columns = (onEdit?: (user: User) => void, onDelete?: (user: User) =
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onEdit?.(user)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(user)}>Deactivate</DropdownMenuItem>
+                        {user.is_active ? (
+                            <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(user)}>
+                                Deactivate
+                            </DropdownMenuItem>
+                        ) : (
+                            <DropdownMenuItem className="text-green-600" onClick={() => onDelete?.(user)}>
+                                Activate
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             );

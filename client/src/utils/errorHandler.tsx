@@ -49,3 +49,23 @@ export const handleApiFormError = <T extends Record<string, any>>(error: unknown
         console.error("An unexpected error occurred:", error);
     }
 };
+
+
+export const handleApiError = (error: unknown) => {
+    if (error instanceof AxiosError && error.response?.data) {
+        const errorData = error.response.data as ErrorResponse;
+
+        if (Array.isArray(errorData.detail)) {
+            errorData.detail.forEach((err) => {
+                const message = err.ctx?.reason || err.msg;
+                console.error("API Validation Error:", message);
+            });
+        } else if (typeof errorData.detail === "string") {
+            console.error("API Error:", errorData.detail);
+        } else {
+            console.error("An unexpected error occurred:", errorData);
+        }
+    } else {
+        console.error("An unexpected error occurred:", error);
+    }
+};

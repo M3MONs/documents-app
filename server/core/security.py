@@ -1,10 +1,16 @@
 from datetime import datetime, timedelta, timezone
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from typing import Optional
 from passlib.context import CryptContext
 from core.config import settings
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 import logging
+
+from core.database import get_db
+from models.user import User
+from services.user_service import UserService
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -79,3 +85,37 @@ async def validate_refresh_token(token: str) -> dict:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token"
         )
+
+security = HTTPBearer()
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    token = credentials.credentials
+    payload = await validate_access_token(token)
+    user_id = payload.get("sub")
+
+    user = await UserService.get_user_by_id(db, str(user_id))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+    return user
+
+class RoleChecker:
+
+    def __init__(self, required_roles: list[str]) -> None:
+        self.required_roles = set(required_roles)
+
+    async def __call__(self, current_user: User = Depends(get_current_user)) -> None:
+        is_superuser = getattr(current_user, "is_superuser", False)
+        if is_superuser:
+            return  
+
+        user_roles = {role.name for role in getattr(current_user, "roles", [])}
+        
+        if not self.required_roles.intersection(user_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"User lacks required roles: {list(self.required_roles)}",
+            )

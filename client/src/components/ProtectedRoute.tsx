@@ -12,8 +12,8 @@ const ProtectedRoute = ({ isSuperuser = false }: ProtectedRouteProps) => {
 
     if (!token || !user?.id) return <Navigate to="/login" replace />;
 
-    if (!isSuperuser && user?.is_superuser !== true) return <Navigate to="/" replace />;
-
+    if (isSuperuser && user?.is_superuser !== true) return <Navigate to="/" replace />;
+    
     return <Outlet />;
 };
 

@@ -4,10 +4,14 @@ from core.security import RoleChecker, get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from schemas.pagination import PaginationParams, PaginationResponse
+from services.organization_service import OrganizationService
 from services.user_service import UserService
+from schemas.organization import Organization as OrganizationSchema
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+# region User Management Endpoints
 
 
 @router.get("/users", dependencies=[Depends(RoleChecker(["admin"]))], response_model=PaginationResponse)
@@ -98,3 +102,98 @@ async def edit_user(
         raise HTTPException(status_code=403, detail="Cannot edit a superuser")
 
     await UserService.update_user(db, user_id=user_id, payload=payload)
+
+
+# endregion User Management Endpoints
+
+# region Organization Management Endpoints
+
+
+@router.get("/organizations", response_model=PaginationResponse)
+async def get_organizations_paginated(
+    db: AsyncSession = Depends(get_db),
+    dependencies=[Depends(RoleChecker(["admin"]))],
+    pagination: PaginationParams = Depends(),
+) -> PaginationResponse:
+    organizations = await OrganizationService.get_paginated_organizations(db, pagination)
+
+    return organizations
+
+
+@router.delete("/organizations/{organization_id}", dependencies=[Depends(RoleChecker(["admin"]))])
+async def delete_organization(organization_id: str, db: AsyncSession = Depends(get_db)) -> None:
+    organization = await OrganizationService.get_organization_by_id(db, organization_id)
+
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    await OrganizationService.delete_organization(db, organization_id=organization_id)
+
+
+@router.post("/organizations/{organization_id}/deactivate", dependencies=[Depends(RoleChecker(["admin"]))])
+async def deactivate_organization(organization_id: str, db: AsyncSession = Depends(get_db)) -> None:
+    organization = await OrganizationService.get_organization_by_id(db, organization_id)
+
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    if organization.is_active is False:
+        raise HTTPException(status_code=400, detail="Organization is already deactivated")
+
+    await OrganizationService.deactivate_organization(db, organization_id=organization_id)
+
+
+@router.post("/organizations/{organization_id}/activate", dependencies=[Depends(RoleChecker(["admin"]))])
+async def activate_organization(organization_id: str, db: AsyncSession = Depends(get_db)) -> None:
+    organization = await OrganizationService.get_organization_by_id(db, organization_id)
+
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    if organization.is_active is True:
+        raise HTTPException(status_code=400, detail="Organization is already activated")
+
+    await OrganizationService.activate_organization(db, organization_id=organization_id)
+
+
+class OrganizationEditPayload(BaseModel):
+    name: str = Field(..., description="The new name for the organization")
+    description: str = Field("", description="The new description for the organization")
+
+
+@router.put("/organizations/{organization_id}", dependencies=[Depends(RoleChecker(["admin"]))])
+async def edit_organization(
+    organization_id: str, payload: OrganizationEditPayload, db: AsyncSession = Depends(get_db)
+) -> None:
+    organization = await OrganizationService.get_organization_by_id(db, organization_id)
+
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    if not bool(organization.is_active):
+        raise HTTPException(status_code=400, detail="Cannot edit an inactive organization")
+
+    await OrganizationService.update_organization(db, organization_id=organization_id, payload=payload)
+
+
+class OrganizationCreatePayload(BaseModel):
+    name: str = Field(..., description="The name for the new organization")
+    domain: str = Field("", description="The domain for the new organization")
+    is_active: bool = Field(True, description="Whether the organization is active")
+
+
+@router.post("/organizations", dependencies=[Depends(RoleChecker(["admin"]))], response_model=OrganizationSchema)
+async def create_organization(
+    payload: OrganizationCreatePayload, db: AsyncSession = Depends(get_db)
+) -> OrganizationSchema:
+    if not await OrganizationService.is_unique_name(db, payload.name):
+        raise HTTPException(status_code=400, detail="Organization name must be unique")
+    
+    if payload.domain and not await OrganizationService.is_unique_domain(db, payload.domain):
+        raise HTTPException(status_code=400, detail="Organization domain must be unique")
+
+    created_organization = await OrganizationService.create_organization(db, payload)
+    return OrganizationSchema.model_validate(created_organization)
+
+
+# endregion Organization Management Endpoints

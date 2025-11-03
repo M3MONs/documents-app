@@ -60,3 +60,13 @@ class UserService:
 
         setattr(user, "hashed_password", new_password_hashed)
         await BaseRepository.update(db, user)
+
+
+    @staticmethod    
+    async def update_user(db: AsyncSession, user_id: str, payload) -> None:
+        user = await BaseRepository.get_by_id(model=User, db=db, entity_id=user_id)
+
+        for field, value in payload.dict(exclude_unset=True).items():
+            setattr(user, field, value)
+
+        await BaseRepository.update(db, user)

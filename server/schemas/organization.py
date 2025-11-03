@@ -5,7 +5,8 @@ from pydantic import BaseModel
 class Organization(BaseModel):
     id: uuid.UUID
     name: str
-    description: str | None = None
+    domain: str | None = None
+    is_active: bool = True
 
     class Config:
         from_attributes = True

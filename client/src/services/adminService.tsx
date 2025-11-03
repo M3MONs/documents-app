@@ -1,5 +1,6 @@
 import apiClient from "@/services/apiClient";
 import type { PaginationParams } from "@/types/pagination";
+import type { UserEditPayload, UserPasswordResetPayload } from "@/types/user";
 
 const URL = "/admin";
 
@@ -19,7 +20,11 @@ export default class AdminService {
         await apiClient.post(`${URL}/users/${userId}/activate`);
     }
 
-    static resetUserPassword = async (userId: string, newPassword: string) => {
-        await apiClient.post(`${URL}/users/${userId}/reset-password`, { new_password: newPassword });
+    static resetUserPassword = async (userId: string, payload: UserPasswordResetPayload) => {
+        await apiClient.post(`${URL}/users/${userId}/reset-password`, payload);
+    }
+
+    static updateUser = async (userId: string, payload: UserEditPayload) => {
+        await apiClient.put(`${URL}/users/${userId}`, payload);
     }
 }

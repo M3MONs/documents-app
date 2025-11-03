@@ -30,6 +30,11 @@ export const AuthProvider = ({ children }: { children: any }) => {
         const refreshAuthToken = async () => {
             try {
                 const data = await AuthService.refreshToken();
+
+                if (!data || !data.access_token) {
+                    throw new Error("Invalid refresh response");
+                }
+
                 setUser(data.user);
                 setToken(data.access_token);
             } catch (err: any) {

@@ -20,11 +20,11 @@ const EditUser = ({ user, isOpen, onClose, onConfirm }: EditUserProps) => {
     const editUserRef = useRef<any>(null);
     const changePasswordRef = useRef<any>(null);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (activeTab === "details") {
-            editUserRef.current?.submit();
+            await editUserRef.current?.submit();
         } else if (activeTab === "password") {
-            changePasswordRef.current?.submit();
+            await changePasswordRef.current?.submit();
         }
         onConfirm();
     };

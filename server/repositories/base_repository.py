@@ -81,7 +81,7 @@ class BaseRepository:
             raise e
 
     @staticmethod
-    async def delete(model: Type[M], db: AsyncSession, entity_id: int) -> bool:
+    async def delete(model: Type[M], db: AsyncSession, entity_id: str) -> bool:
         obj = await db.get(model, entity_id)
         if obj is None:
             raise NotFoundError(f"{model.__name__} with id {entity_id} not found")

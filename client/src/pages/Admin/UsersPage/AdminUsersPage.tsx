@@ -11,6 +11,7 @@ import DeactivateDialog from "@/components/molecules/DeactivateDialog";
 import { handleApiError } from "@/utils/errorHandler";
 import { useQueryClient } from "@tanstack/react-query";
 import ActivateDialog from "@/components/molecules/ActivateDialog";
+import EditUser from "./components/EditUser";
 
 declare module "@tanstack/react-table" {
     interface ColumnMeta<TData extends RowData, TValue> {
@@ -23,6 +24,7 @@ const AdminUsersPage = () => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
     const [isActivateDialogOpen, setIsActivateDialogOpen] = useState(false);
+    const [isEditUserOpen, setIsEditUserOpen] = useState(false);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [{ pageIndex, pageSize }, setPagination] = useState({
@@ -35,8 +37,8 @@ const AdminUsersPage = () => {
     };
 
     const handleEditAction = (user: User) => {
-        console.log("Edit user", user);
         setSelectedUser(user);
+        setIsEditUserOpen(true);
     };
 
     const handleDeactivateAction = (user: User) => {
@@ -123,6 +125,13 @@ const AdminUsersPage = () => {
                 onClose={() => setIsActivateDialogOpen(false)}
                 onConfirm={handleActivateConfirm}
                 text={selectedUser?.username}
+            />
+
+            <EditUser
+                user={selectedUser!}
+                isOpen={isEditUserOpen}
+                onClose={() => setIsEditUserOpen(false)}
+                onConfirm={() => {console.log("User edited"); refreshData();}}
             />
         </>
     );

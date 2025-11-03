@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from core.security import RoleChecker
+from core.security import RoleChecker, get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from schemas.pagination import PaginationParams, PaginationResponse
@@ -53,7 +53,12 @@ class PasswordResetPayload(BaseModel):
 
 
 @router.post("/users/{user_id}/reset-password", dependencies=[Depends(RoleChecker(["admin"]))])
-async def reset_user_password(user_id: str, payload: PasswordResetPayload, db: AsyncSession = Depends(get_db)) -> None:
+async def reset_user_password(
+    user_id: str,
+    payload: PasswordResetPayload,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+) -> None:
     if not payload.new_password:
         raise HTTPException(status_code=400, detail="New password must be provided")
 
@@ -61,12 +66,35 @@ async def reset_user_password(user_id: str, payload: PasswordResetPayload, db: A
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     if not bool(user.is_active):
         raise HTTPException(status_code=400, detail="Cannot reset password for an inactive user")
-    
-    if bool(user.is_superuser):
+
+    is_editing_self = str(current_user.id) == user_id
+    if bool(user.is_superuser) and not is_editing_self:
         raise HTTPException(status_code=403, detail="Cannot reset password for a superuser")
-    
 
     await UserService.reset_user_password(db, user_id=user_id, new_password=payload.new_password)
+
+
+class UserEditPayload(BaseModel):
+    email: str = Field(..., description="The new email for the user")
+
+
+@router.put("/users/{user_id}", dependencies=[Depends(RoleChecker(["admin"]))])
+async def edit_user(
+    user_id: str, payload: UserEditPayload, db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)
+) -> None:
+    user = await UserService.get_user_by_id(db, user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not bool(user.is_active):
+        raise HTTPException(status_code=400, detail="Cannot edit an inactive user")
+
+    is_editing_self = str(current_user.id) == user_id
+    if bool(user.is_superuser) and not is_editing_self:
+        raise HTTPException(status_code=403, detail="Cannot edit a superuser")
+
+    await UserService.update_user(db, user_id=user_id, payload=payload)

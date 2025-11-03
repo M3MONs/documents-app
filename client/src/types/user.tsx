@@ -11,3 +11,11 @@ export interface User {
     primary_organization?: Organization | null;
     additional_organizations?: Organization[] | null;
 }
+
+export interface UserEditPayload {
+    email?: string;
+}
+
+export interface UserPasswordResetPayload {
+    new_password: string;
+}

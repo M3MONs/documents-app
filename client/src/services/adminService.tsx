@@ -18,4 +18,8 @@ export default class AdminService {
     static activateUser = async (userId: string) => {
         await apiClient.post(`${URL}/users/${userId}/activate`);
     }
+
+    static resetUserPassword = async (userId: string, newPassword: string) => {
+        await apiClient.post(`${URL}/users/${userId}/reset-password`, { new_password: newPassword });
+    }
 }

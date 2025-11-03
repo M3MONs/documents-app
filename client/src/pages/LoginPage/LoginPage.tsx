@@ -74,6 +74,7 @@ const LoginPage = () => {
                             </FormItem>
                         )}
                     />
+
                     <FormField
                         control={form.control}
                         name="password"
@@ -87,6 +88,11 @@ const LoginPage = () => {
                             </FormItem>
                         )}
                     />
+
+                    {form.formState.errors.root && (
+                        <div className="text-destructive text-sm">{form.formState.errors.root.message}</div>
+                    )}
+
                     <Button type="submit" className="w-full">
                         Login
                     </Button>

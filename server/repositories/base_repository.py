@@ -38,8 +38,17 @@ class BaseRepository:
 
         if filters:
             for field, value in filters:
-                query = query.where(getattr(model, field) == value)
-                total_query = total_query.where(getattr(model, field) == value)
+                column = getattr(model, field)
+                if isinstance(value, str):
+                    query = query.where(column.ilike(f"%{value}%"))
+                    total_query = total_query.where(column.ilike(f"%{value}%"))
+                elif value in ("true", "false"):
+                    bool_value = value.lower() == "true"
+                    query = query.where(column == bool_value)
+                    total_query = total_query.where(column == bool_value)
+                else:
+                    query = query.where(column == value)
+                    total_query = total_query.where(column == value)
 
         if ordering:
             column = getattr(model, ordering)

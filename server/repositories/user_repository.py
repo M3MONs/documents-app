@@ -1,6 +1,7 @@
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
+from models.organization import Organization
 
 
 class UserRepository:
@@ -13,14 +14,29 @@ class UserRepository:
     async def get_by_email(db: AsyncSession, email: str) -> User | None:
         result = await db.execute(select(User).where(User.email == email))
         return result.scalars().first()
-    
+
     @staticmethod
     async def deactivate_user(db: AsyncSession, user_id: str) -> None:
         await db.execute(update(User).where(User.id == user_id).values(is_active=False))
         await db.commit()
-        
+
     @staticmethod
     async def activate_user(db: AsyncSession, user_id: str) -> None:
         await db.execute(update(User).where(User.id == user_id).values(is_active=True))
         await db.commit()
-        
+
+    @staticmethod
+    async def assign_user_to_organization(
+        db: AsyncSession, user_id: str, organization_id: str, set_primary: bool = False
+    ) -> None:
+        user = await db.get(User, user_id)
+        if user is None:
+            raise ValueError(f"User with id {user_id} not found")
+
+        if set_primary or not bool(user.primary_organization_id):
+            setattr(user, "primary_organization_id", organization_id)
+
+        if organization_id not in [org.id for org in user.additional_organizations]:
+            user.additional_organizations.append(await db.get(Organization, organization_id))
+
+        await db.commit()

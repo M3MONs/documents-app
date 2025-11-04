@@ -5,11 +5,12 @@ from models.organization import Organization
 from schemas.organization import Organization as OrganizationSchema
 from repositories.base_repository import BaseRepository
 
+
 class OrganizationService:
     @staticmethod
     async def get_organization_by_id(db: AsyncSession, organization_id: str) -> Organization | None:
         return await BaseRepository.get_by_id(Organization, db, organization_id)
-    
+
     @staticmethod
     async def delete_organization(db: AsyncSession, organization_id: str) -> None:
         organization = await BaseRepository.get_by_id(Organization, db, organization_id)
@@ -28,30 +29,25 @@ class OrganizationService:
             ordering_desc=pagination.ordering_desc,
             filters=pagination.filters,
         )
-        
+
     @staticmethod
     async def update_organization(db: AsyncSession, organization_id: str, payload) -> None:
         organization = await BaseRepository.get_by_id(model=Organization, db=db, entity_id=organization_id)
 
         for field, value in payload.dict(exclude_unset=True).items():
-            print("Updating field:", field, "to value:", value)
             setattr(organization, field, value)
 
         await BaseRepository.update(db, organization)
-        
+
     @staticmethod
     async def is_unique_name(db: AsyncSession, name: str) -> bool:
-        result = await db.execute(
-            select(Organization).where(func.lower(Organization.name) == name.lower())
-        )
+        result = await db.execute(select(Organization).where(func.lower(Organization.name) == name.lower()))
         organization = result.scalars().first()
         return organization is None
-    
+
     @staticmethod
     async def is_unique_domain(db: AsyncSession, domain: str) -> bool:
-        result = await db.execute(
-            select(Organization).where(func.lower(Organization.domain) == domain.lower())
-        )
+        result = await db.execute(select(Organization).where(func.lower(Organization.domain) == domain.lower()))
         organization = result.scalars().first()
         return organization is None
 

@@ -64,6 +64,12 @@ const AdminOrganizationsPage = () => {
         }
     };
 
+    const handleCreateEditClose = () => {
+        setIsEditOrganizationOpen(false);
+        setIsCreateOrganizationOpen(false);
+        setSelectedOrganization(null);
+    };
+
     const { data, isLoading, error } = usePaginationQuery(
         ["admin/organizations"],
         pageIndex,
@@ -98,6 +104,7 @@ const AdminOrganizationsPage = () => {
                 onAddButtonClick={handleAddButtonClick}
             />
 
+            {/* Delete Organization Confirmation Dialog */}
             <DeactivateDialog
                 isOpen={isDeleteDialogOpen}
                 onClose={() => setIsDeleteDialogOpen(false)}
@@ -108,14 +115,8 @@ const AdminOrganizationsPage = () => {
             />
 
             <CreateEditOrganization
-                isOpen={isCreateOrganizationOpen}
-                onClose={() => setIsCreateOrganizationOpen(false)}
-                onConfirm={() => refreshData()}
-            />
-
-            <CreateEditOrganization
-                isOpen={isEditOrganizationOpen}
-                onClose={() => setIsEditOrganizationOpen(false)}
+                isOpen={isEditOrganizationOpen || isCreateOrganizationOpen}
+                onClose={handleCreateEditClose}
                 onConfirm={() => refreshData()}
                 organization={selectedOrganization || undefined}
             />

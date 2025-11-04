@@ -10,6 +10,7 @@ export interface User {
     role?: Role | null;
     primary_organization?: Organization | null;
     additional_organizations?: Organization[] | null;
+    is_assigned?: boolean | null;
 }
 
 export interface UserEditPayload {
@@ -18,4 +19,8 @@ export interface UserEditPayload {
 
 export interface UserPasswordResetPayload {
     new_password: string;
+}
+
+export interface UserAssignOrganizationPayload {
+    set_primary?: boolean;
 }

@@ -2,7 +2,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
 
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, CheckCircle, MoreHorizontal, XCircle } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -41,10 +41,24 @@ export const columns = (onEdit?: (user: User) => void, onDelete?: (user: User) =
     {
         accessorKey: "is_active",
         header: "Active",
-        cell: ({ row }) => (row.getValue("is_active") ? "Yes" : "No"),
+        cell: ({ row }) => {
+            const isActive = row.getValue("is_active");
+            return isActive ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+            ) : (
+                <XCircle className="h-4 w-4 text-red-500" />
+            );
+        },
         filterFn: (row, columnId, filterValue) => {
-            const cellValue = row.getValue(columnId) ? "Yes" : "No";
-            return cellValue.toLowerCase().includes(filterValue.toLowerCase());
+            const value = row.getValue(columnId) as boolean;
+            const lowerFilter = filterValue.toLowerCase();
+            if (lowerFilter === "") return true;
+
+            if (lowerFilter === "yes" || lowerFilter === "1") return value === true;
+
+            if (lowerFilter === "no" || lowerFilter === "0") return value === false;
+
+            return false;
         },
         meta: { filterable: true },
     },

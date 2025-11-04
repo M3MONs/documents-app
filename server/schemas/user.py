@@ -15,3 +15,6 @@ class User(BaseModel):
     
     class Config:
         from_attributes = True
+        
+class UserWithAssignment(User):
+    is_assigned: bool | None = None

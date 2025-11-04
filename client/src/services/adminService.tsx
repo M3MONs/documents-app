@@ -1,14 +1,18 @@
 import apiClient from "@/services/apiClient";
 import type { OrganizationCreatePayload } from "@/types/organization";
 import type { PaginationParams } from "@/types/pagination";
-import type { UserEditPayload, UserPasswordResetPayload } from "@/types/user";
+import type { UserAssignOrganizationPayload, UserEditPayload, UserPasswordResetPayload } from "@/types/user";
 
 const URL = "/admin";
 
 export default class AdminService {
-    static getUsers = async (pagination: PaginationParams) => {
+    static getUsers = async (pagination: PaginationParams, organizationId?: string) => {
+        const params = { ...pagination };
+        if (organizationId) {
+            params.organization_id = organizationId;
+        }
         const response = await apiClient.get(`${URL}/users`, {
-            params: { ...pagination },
+            params,
         });
         return response.data;
     };
@@ -32,7 +36,7 @@ export default class AdminService {
     static getOrganizations = async () => {
         const response = await apiClient.get(`${URL}/organizations`);
         return response.data;
-    }
+    };
 
     static createOrganization = async (payload: OrganizationCreatePayload) => {
         const response = await apiClient.post(`${URL}/organizations`, payload);
@@ -46,5 +50,13 @@ export default class AdminService {
 
     static deleteOrganization = async (organizationId: string) => {
         await apiClient.delete(`${URL}/organizations/${organizationId}`);
-    }
+    };
+
+    static assignUserToOrganization = async (
+        userId: string,
+        organizationId: string,
+        payload: UserAssignOrganizationPayload
+    ) => {
+        await apiClient.post(`${URL}/organizations/${organizationId}/users/${userId}/assign`, payload);
+    };
 }

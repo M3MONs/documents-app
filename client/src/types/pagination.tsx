@@ -4,6 +4,7 @@ export interface PaginationParams {
     ordering?: string;
     orderingDesc?: boolean;
     filters?: Array<[string, string]>;
+    organization_id?: string;
 }
 
 export class PaginationParamsImpl implements PaginationParams {

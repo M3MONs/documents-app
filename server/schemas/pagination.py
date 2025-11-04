@@ -6,7 +6,14 @@ class PaginationParams(BaseModel):
     page_size: int = Field(10, ge=1, le=100, description="Number of items per page")
     ordering: Optional[str] = Field(None, description="Field to sort by")
     ordering_desc: bool = Field(False, description="Whether to sort descending")
-    filters: Optional[list[tuple[str, str]]] = Field(None, description="List of filters as [(field, value)]")
+    filter_field: Optional[str] = Field(None, description="Field to filter by")
+    filter_value: Optional[str] = Field(None, description="Value to filter by")
+
+    @property
+    def filters(self) -> Optional[list[tuple[str, str]]]:
+        if self.filter_field and self.filter_value:
+            return [(self.filter_field, self.filter_value)]
+        return None
 
     @property
     def offset(self) -> int:

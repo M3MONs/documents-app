@@ -8,17 +8,19 @@ export const usePaginationQuery = (
     pageSize: number,
     sorting: SortingState,
     columnFilters: ColumnFiltersState,
-    service: (pagination: PaginationParams) => Promise<any>
+    service: (pagination: PaginationParams) => Promise<any>,
+    organizationId?: string
 ) => {
     return useQuery({
-        queryKey: [...queryKey, pageIndex, pageSize, sorting, columnFilters],
+        queryKey: [...queryKey, pageIndex, pageSize, sorting, columnFilters, organizationId],
         queryFn: () => {
             const pagination: PaginationParams = {
                 page: pageIndex + 1,
                 pageSize,
                 ordering: sorting.length > 0 ? sorting[0].id : undefined,
-                orderingDesc: sorting.length > 0 ? sorting[0].desc : false,
+                ordering_desc: sorting.length > 0 ? sorting[0].desc : false,
                 filters: columnFilters.map((filter: any) => [filter.id, filter.value as string]),
+                organization_id: organizationId,
             };
             return service(pagination);
         },

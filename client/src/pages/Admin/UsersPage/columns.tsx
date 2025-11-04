@@ -40,7 +40,14 @@ export const columns = (onEdit?: (user: User) => void, onDelete?: (user: User) =
     },
     {
         accessorKey: "is_active",
-        header: "Active",
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+                    Active
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            );
+        },
         cell: ({ row }) => {
             const isActive = row.getValue("is_active");
             return isActive ? (
@@ -54,7 +61,7 @@ export const columns = (onEdit?: (user: User) => void, onDelete?: (user: User) =
             const lowerFilter = filterValue.toLowerCase();
             if (lowerFilter === "") return true;
 
-            if (lowerFilter === "yes" || lowerFilter === "1") return value === true;
+            if (lowerFilter === "yes" || lowerFilter === "1" || lowerFilter === "true") return value === true;
 
             if (lowerFilter === "no" || lowerFilter === "0") return value === false;
 

@@ -30,17 +30,21 @@ class UserService:
         return user is not None
 
     @staticmethod
-    async def get_paginated_users(db: AsyncSession, pagination: PaginationParams) -> PaginationResponse:
-        return await BaseRepository.get_paginated(
-            model=User,
-            db=db,
-            item_schema=UserSchema,
-            offset=pagination.offset,
-            limit=pagination.page_size,
-            ordering=pagination.ordering if pagination.ordering else "created_at",
-            ordering_desc=pagination.ordering_desc,
-            filters=pagination.filters,
-        )
+    async def get_paginated_users(db: AsyncSession, pagination: PaginationParams, organization_id: str | None = None) -> PaginationResponse:
+        if organization_id:
+            from repositories.organization_repository import OrganizationRepository
+            return await OrganizationRepository.get_paginated_users_with_assignment(db, organization_id, pagination)
+        else:
+            return await BaseRepository.get_paginated(
+                model=User,
+                db=db,
+                item_schema=UserSchema,
+                offset=pagination.offset,
+                limit=pagination.page_size,
+                ordering=pagination.ordering if pagination.ordering else "created_at",
+                ordering_desc=pagination.ordering_desc,
+                filters=pagination.filters,
+            )
 
     @staticmethod
     async def deactivate_user(db: AsyncSession, user_id: str) -> None:
@@ -70,3 +74,7 @@ class UserService:
             setattr(user, field, value)
 
         await BaseRepository.update(db, user)
+        
+    @staticmethod
+    async def assign_user_to_organization(db: AsyncSession, user_id: str, organization_id: str, set_primary: bool = False) -> None:
+        await UserRepository.assign_user_to_organization(db, user_id, organization_id, set_primary=set_primary)

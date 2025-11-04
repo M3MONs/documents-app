@@ -15,7 +15,8 @@ import type { Organization } from "@/types/organization";
 
 export const columns = (
     onEdit?: (organization: Organization) => void,
-    onDelete?: (organization: Organization) => void
+    onDelete?: (organization: Organization) => void,
+    onAssignments?: (organization: Organization) => void
 ): ColumnDef<Organization>[] => [
     {
         accessorKey: "name",
@@ -31,7 +32,14 @@ export const columns = (
     },
     {
         accessorKey: "domain",
-        header: "Domain",
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+                    Domain
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            );
+        },
         cell: ({ row }) => row.getValue("domain"),
         filterFn: (row, columnId, filterValue) => {
             const cellValue = row.getValue(columnId) as string;
@@ -41,7 +49,14 @@ export const columns = (
     },
     {
         accessorKey: "is_active",
-        header: "Active",
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+                    Active
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            );
+        },
         cell: ({ row }) => {
             const isActive = row.getValue("is_active");
             return isActive ? (
@@ -55,7 +70,7 @@ export const columns = (
             const lowerFilter = filterValue.toLowerCase();
             if (lowerFilter === "") return true;
 
-            if (lowerFilter === "yes" || lowerFilter === "1") {
+            if (lowerFilter === "yes" || lowerFilter === "1" || lowerFilter === "true") {
                 return value === true;
             }
             if (lowerFilter === "no" || lowerFilter === "0") {
@@ -80,6 +95,10 @@ export const columns = (
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onAssignments?.(organization)}>
+                            Manage Assignments
+                        </DropdownMenuItem>
+
                         <DropdownMenuItem onClick={() => onEdit?.(organization)}>Edit</DropdownMenuItem>
 
                         <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(organization)}>

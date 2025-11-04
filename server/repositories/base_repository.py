@@ -1,5 +1,5 @@
 from typing import Sequence, TypeVar, Type, Any
-from sqlalchemy import func, select
+from sqlalchemy import Boolean, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas.pagination import PaginationResponse
@@ -38,17 +38,18 @@ class BaseRepository:
 
         if filters:
             for field, value in filters:
+                print(f"Applying filter on field: {field} with value: {value}", value in (1, '1', 'yes', 'Yes', 'YES', True, 'true', 'True', 'TRUE'))
                 column = getattr(model, field)
-                if isinstance(value, str):
-                    query = query.where(column.ilike(f"%{value}%"))
-                    total_query = total_query.where(column.ilike(f"%{value}%"))
-                elif value in ("true", "false"):
-                    bool_value = value.lower() == "true"
+                if isinstance(column.type, Boolean):
+                    if value in (1, '1', 'yes', 'Yes', 'YES', 'true', 'True', 'TRUE'):
+                        bool_value = True
+                    else:
+                        bool_value = False
                     query = query.where(column == bool_value)
                     total_query = total_query.where(column == bool_value)
                 else:
-                    query = query.where(column == value)
-                    total_query = total_query.where(column == value)
+                    query = query.where(column.ilike(f"%{value}%"))
+                    total_query = total_query.where(column.ilike(f"%{value}%"))
 
         if ordering:
             column = getattr(model, ordering)

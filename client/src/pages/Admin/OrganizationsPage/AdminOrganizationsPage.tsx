@@ -11,6 +11,7 @@ import { handleApiError } from "@/utils/errorHandler";
 import { useQueryClient } from "@tanstack/react-query";
 import CreateEditOrganization from "./components/CreateEditOrganization";
 import type { Organization } from "@/types/organization";
+import OrganizationAssignments from "./components/OrganizationAssignments/OrganizationAssignments";
 
 declare module "@tanstack/react-table" {
     interface ColumnMeta<TData extends RowData, TValue> {
@@ -21,9 +22,12 @@ declare module "@tanstack/react-table" {
 const AdminOrganizationsPage = () => {
     const queryClient = useQueryClient();
     const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isEditOrganizationOpen, setIsEditOrganizationOpen] = useState(false);
     const [isCreateOrganizationOpen, setIsCreateOrganizationOpen] = useState(false);
+    const [isOrganizationAssignmentsOpen, setIsOrganizationAssignmentsOpen] = useState(false);
+
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [{ pageIndex, pageSize }, setPagination] = useState({
@@ -35,7 +39,7 @@ const AdminOrganizationsPage = () => {
         queryClient.invalidateQueries({ queryKey: ["admin/organizations"] });
     };
 
-    const handleAddButtonClick = () => {
+    const handleAddAction = () => {
         setIsCreateOrganizationOpen(true);
     };
 
@@ -47,6 +51,11 @@ const AdminOrganizationsPage = () => {
     const handleDeleteAction = (organization: Organization) => {
         setSelectedOrganization(organization);
         setIsDeleteDialogOpen(true);
+    };
+
+    const handleAssignmentsAction = (organization: Organization) => {
+        setSelectedOrganization(organization);
+        setIsOrganizationAssignmentsOpen(true);
     };
 
     const handleDeleteConfirm = async () => {
@@ -88,10 +97,10 @@ const AdminOrganizationsPage = () => {
     };
 
     return (
-        <>
+        <div className="p-4">
             <TableLayout
                 data={data}
-                columns={columns(handleEditAction, handleDeleteAction)}
+                columns={columns(handleEditAction, handleDeleteAction, handleAssignmentsAction)}
                 isLoading={isLoading}
                 sorting={sorting}
                 columnFilters={columnFilters}
@@ -101,7 +110,7 @@ const AdminOrganizationsPage = () => {
                 setColumnFilters={setColumnFilters}
                 setPagination={handlePaginationChange}
                 isAddButtonVisible={true}
-                onAddButtonClick={handleAddButtonClick}
+                onAddButtonClick={handleAddAction}
             />
 
             {/* Delete Organization Confirmation Dialog */}
@@ -120,7 +129,13 @@ const AdminOrganizationsPage = () => {
                 onConfirm={() => refreshData()}
                 organization={selectedOrganization || undefined}
             />
-        </>
+
+            <OrganizationAssignments
+                isOpen={isOrganizationAssignmentsOpen}
+                selectedOrganization={selectedOrganization}
+                onClose={() => {setIsOrganizationAssignmentsOpen(false); setSelectedOrganization(null)}}
+            />
+        </div>
     );
 };
 

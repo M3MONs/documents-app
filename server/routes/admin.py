@@ -130,35 +130,10 @@ async def delete_organization(organization_id: str, db: AsyncSession = Depends(g
     await OrganizationService.delete_organization(db, organization_id=organization_id)
 
 
-@router.post("/organizations/{organization_id}/deactivate", dependencies=[Depends(RoleChecker(["admin"]))])
-async def deactivate_organization(organization_id: str, db: AsyncSession = Depends(get_db)) -> None:
-    organization = await OrganizationService.get_organization_by_id(db, organization_id)
-
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    if organization.is_active is False:
-        raise HTTPException(status_code=400, detail="Organization is already deactivated")
-
-    await OrganizationService.deactivate_organization(db, organization_id=organization_id)
-
-
-@router.post("/organizations/{organization_id}/activate", dependencies=[Depends(RoleChecker(["admin"]))])
-async def activate_organization(organization_id: str, db: AsyncSession = Depends(get_db)) -> None:
-    organization = await OrganizationService.get_organization_by_id(db, organization_id)
-
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    if organization.is_active is True:
-        raise HTTPException(status_code=400, detail="Organization is already activated")
-
-    await OrganizationService.activate_organization(db, organization_id=organization_id)
-
-
 class OrganizationEditPayload(BaseModel):
     name: str = Field(..., description="The new name for the organization")
-    description: str = Field("", description="The new description for the organization")
+    domain: str = Field("", description="The new domain for the organization")
+    is_active: bool = Field(True, description="Whether the organization is active")
 
 
 @router.put("/organizations/{organization_id}", dependencies=[Depends(RoleChecker(["admin"]))])

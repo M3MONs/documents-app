@@ -19,6 +19,7 @@ import TableControls from "@/components/atoms/TableControls";
 interface TableLayoutProps {
     data: any;
     isLoading?: boolean;
+    isAddButtonVisible?: boolean;
     columns: any;
     sorting: SortingState;
     columnFilters: ColumnFiltersState;
@@ -27,12 +28,14 @@ interface TableLayoutProps {
     setSorting: (updater: SortingState | ((old: SortingState) => SortingState)) => void;
     setColumnFilters: (updater: ColumnFiltersState | ((old: ColumnFiltersState) => ColumnFiltersState)) => void;
     setPagination: OnChangeFn<{ pageIndex: number; pageSize: number }>;
+    onAddButtonClick?: () => void;
 }
 
 const TableLayout = ({
     data,
     columns,
     isLoading = false,
+    isAddButtonVisible = false,
     sorting,
     columnFilters,
     pageIndex,
@@ -40,6 +43,7 @@ const TableLayout = ({
     setSorting,
     setColumnFilters,
     setPagination,
+    onAddButtonClick,
 }: TableLayoutProps) => {
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = useState({});
@@ -58,7 +62,7 @@ const TableLayout = ({
     const table = useReactTable({
         data: data?.items ?? [],
         columns,
-        pageCount: data?.total ? Math.ceil(data.total / pageSize) : -1,
+        pageCount: data?.total ? Math.ceil(data.total / pageSize) : 0,
         state: {
             sorting,
             columnFilters,
@@ -140,6 +144,8 @@ const TableLayout = ({
                 handleColumnChange={handleColumnChange}
                 handleSearchChange={handleSearchChange}
                 getFilterableColumns={getFilterableColumns}
+                isAddButtonVisible={isAddButtonVisible}
+                onAddButtonClick={onAddButtonClick}
             />
             <div className="rounded-md border flex-1 flex flex-col overflow-hidden">
                 <Table className="h-full">

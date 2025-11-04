@@ -99,7 +99,7 @@ const AdminUsersPage = () => {
     };
 
     return (
-        <>
+        <div className="p-4">
             <TableLayout
                 data={data}
                 columns={columns(handleEditAction, handleDeactivateAction)}
@@ -133,7 +133,7 @@ const AdminUsersPage = () => {
                 onClose={() => setIsEditUserOpen(false)}
                 onConfirm={() => {console.log("User edited"); refreshData();}}
             />
-        </>
+        </div>
     );
 };
 

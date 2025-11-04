@@ -2,8 +2,10 @@ export interface PaginationParams {
     page: number;
     pageSize: number;
     ordering?: string;
-    orderingDesc?: boolean;
+    ordering_desc?: boolean;
     filters?: Array<[string, string]>;
+    filter_field?: string;
+    filter_value?: string;
     organization_id?: string;
 }
 

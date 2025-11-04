@@ -15,18 +15,6 @@ class OrganizationService:
         organization = await BaseRepository.get_by_id(Organization, db, organization_id)
         if organization:
             await BaseRepository.delete(model=Organization, db=db, entity_id=str(organization.id))
-            
-    @staticmethod
-    async def deactivate_organization(db: AsyncSession, organization_id: str) -> None:
-        organization = await BaseRepository.get_by_id(Organization, db, organization_id)
-        setattr(organization, "is_active", False)
-        await BaseRepository.update(db=db, entity=organization)
-
-    @staticmethod
-    async def activate_organization(db: AsyncSession, organization_id: str) -> None:
-        organization = await BaseRepository.get_by_id(Organization, db, organization_id)
-        setattr(organization, "is_active", True)
-        await BaseRepository.update(db=db, entity=organization)
 
     @staticmethod
     async def get_paginated_organizations(db: AsyncSession, pagination: PaginationParams) -> PaginationResponse:
@@ -46,6 +34,7 @@ class OrganizationService:
         organization = await BaseRepository.get_by_id(model=Organization, db=db, entity_id=organization_id)
 
         for field, value in payload.dict(exclude_unset=True).items():
+            print("Updating field:", field, "to value:", value)
             setattr(organization, field, value)
 
         await BaseRepository.update(db, organization)

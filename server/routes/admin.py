@@ -16,9 +16,10 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/users", dependencies=[Depends(RoleChecker(["admin"]))], response_model=PaginationResponse)
 async def get_users_paginated(
+    organization_id: str | None = None,
     db: AsyncSession = Depends(get_db), pagination: PaginationParams = Depends()
 ) -> PaginationResponse:
-    users = await UserService.get_paginated_users(db, pagination)
+    users = await UserService.get_paginated_users(db, pagination, organization_id)
 
     return users
 
@@ -163,12 +164,53 @@ async def create_organization(
 ) -> OrganizationSchema:
     if not await OrganizationService.is_unique_name(db, payload.name):
         raise HTTPException(status_code=400, detail="Organization name must be unique")
-    
+
     if payload.domain and not await OrganizationService.is_unique_domain(db, payload.domain):
         raise HTTPException(status_code=400, detail="Organization domain must be unique")
 
     created_organization = await OrganizationService.create_organization(db, payload)
     return OrganizationSchema.model_validate(created_organization)
 
+
+@router.get(
+    "/organizations/{organization_id}/users",
+    dependencies=[Depends(RoleChecker(["admin"]))],
+    response_model=PaginationResponse,
+)
+async def get_organization_users_paginated(
+    organization_id: str,
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(),
+) -> PaginationResponse:
+    organization = await OrganizationService.get_organization_by_id(db, organization_id)
+
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    users = await UserService.get_paginated_users(db, pagination, organization_id)
+
+    return users
+
+
+class AssignUserPayload(BaseModel):
+    set_primary: bool = Field(False, description="Whether to set the organization as the user's primary organization")
+
+
+@router.post("/organizations/{organization_id}/users/{user_id}/assign", dependencies=[Depends(RoleChecker(["admin"]))])
+async def assign_user_to_organization(
+    organization_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    payload: AssignUserPayload = Depends(AssignUserPayload),
+) -> None:
+    organization = await OrganizationService.get_organization_by_id(db, organization_id)
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    user = await UserService.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    await UserService.assign_user_to_organization(db, user_id, organization_id, set_primary=payload.set_primary)
 
 # endregion Organization Management Endpoints

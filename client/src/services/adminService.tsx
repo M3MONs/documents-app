@@ -11,6 +11,13 @@ export default class AdminService {
         if (organizationId) {
             params.organization_id = organizationId;
         }
+
+        if (params.filters && Array.isArray(params.filters) && params.filters.length > 0) {
+            const filter = params.filters[0];
+            params.filter_field = filter[0];
+            params.filter_value = filter[1];
+        }
+        delete params.filters;
         const response = await apiClient.get(`${URL}/users`, {
             params,
         });
@@ -33,8 +40,20 @@ export default class AdminService {
         await apiClient.put(`${URL}/users/${userId}`, payload);
     };
 
-    static getOrganizations = async () => {
-        const response = await apiClient.get(`${URL}/organizations`);
+    static getOrganizations = async (pagination: PaginationParams) => {
+        const params = { ...pagination };
+
+        if (params.filters && Array.isArray(params.filters) && params.filters.length > 0) {
+            const filter = params.filters[0];
+            params.filter_field = filter[0];
+            params.filter_value = filter[1];
+        }
+
+        delete params.filters;
+        const response = await apiClient.get(`${URL}/organizations`, {
+            params,
+        });
+        
         return response.data;
     };
 

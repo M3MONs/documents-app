@@ -131,7 +131,7 @@ const AdminUsersPage = () => {
                 user={selectedUser!}
                 isOpen={isEditUserOpen}
                 onClose={() => setIsEditUserOpen(false)}
-                onConfirm={() => {console.log("User edited"); refreshData();}}
+                onConfirm={() => refreshData()}
             />
         </div>
     );

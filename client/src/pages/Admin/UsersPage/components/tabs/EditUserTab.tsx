@@ -49,7 +49,7 @@ const EditUserTab = forwardRef<any, EditUserTabProps>(({ user }, ref) => {
     return (
         <TabsContent value="details" className="space-y-4">
             <Form {...form}>
-                <form className="space-y-4 w-full max-w-md">
+                <form className="space-y-4 w-full">
                     <FormField
                         control={form.control}
                         name="username"

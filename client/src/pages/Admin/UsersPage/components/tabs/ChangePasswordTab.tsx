@@ -55,7 +55,7 @@ const ChangePasswordTab = forwardRef<any, ChangePasswordTabProps>(({ user }, ref
     return (
         <TabsContent value="password" className="space-y-4">
             <Form {...form}>
-                <form className="space-y-4 w-full max-w-md">
+                <form className="space-y-4 w-full">
                     <FormField
                         control={form.control}
                         name="password"

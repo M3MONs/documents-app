@@ -8,7 +8,7 @@ user_organizations = Table(
     "user_organizations",
     Base.metadata,
     Column("user_id", UUID, ForeignKey("users.id"), primary_key=True),
-    Column("organization_id", UUID, ForeignKey("organizations.id"), primary_key=True),
+    Column("organization_id", UUID, ForeignKey("organizations.id", ondelete="CASCADE"), primary_key=True),
 )
 
 
@@ -29,7 +29,7 @@ class User(Base):
     role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"))
     role = relationship("Role", back_populates="users")
 
-    primary_organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    primary_organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True)
     primary_organization = relationship("Organization", back_populates="users", foreign_keys=[primary_organization_id])
 
     additional_organizations = relationship("Organization", secondary=user_organizations, lazy="selectin")

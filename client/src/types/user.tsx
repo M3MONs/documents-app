@@ -11,6 +11,7 @@ export interface User {
     primary_organization?: Organization | null;
     additional_organizations?: Organization[] | null;
     is_assigned?: boolean | null;
+    is_primary?: boolean | null;
 }
 
 export interface UserEditPayload {

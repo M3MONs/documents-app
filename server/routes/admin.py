@@ -161,7 +161,7 @@ class OrganizationCreatePayload(BaseModel):
 @router.post("/organizations", dependencies=[Depends(RoleChecker(["admin"]))], response_model=OrganizationSchema)
 async def create_organization(
     payload: OrganizationCreatePayload, db: AsyncSession = Depends(get_db)
-) -> OrganizationSchema:
+) -> OrganizationSchema | None:
     if not await OrganizationService.is_unique_name(db, payload.name):
         raise HTTPException(status_code=400, detail="Organization name must be unique")
 
@@ -212,5 +212,21 @@ async def assign_user_to_organization(
         raise HTTPException(status_code=404, detail="User not found")
 
     await UserService.assign_user_to_organization(db, user_id, organization_id, set_primary=payload.set_primary)
+    
+@router.post("/organizations/{organization_id}/users/{user_id}/unassign", dependencies=[Depends(RoleChecker(["admin"]))])
+async def unassign_user_from_organization(
+    organization_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    organization = await OrganizationService.get_organization_by_id(db, organization_id)
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    user = await UserService.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    await UserService.unassign_user_from_organization(db, user_id, organization_id)
 
 # endregion Organization Management Endpoints

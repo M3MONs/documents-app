@@ -78,4 +78,8 @@ export default class AdminService {
     ) => {
         await apiClient.post(`${URL}/organizations/${organizationId}/users/${userId}/assign`, payload);
     };
+
+    static unassignUserFromOrganization = async (userId: string, organizationId: string) => {
+        await apiClient.post(`${URL}/organizations/${organizationId}/users/${userId}/unassign`);
+    }
 }

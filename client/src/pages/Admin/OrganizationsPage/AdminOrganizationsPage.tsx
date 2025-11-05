@@ -120,6 +120,7 @@ const AdminOrganizationsPage = () => {
                 onConfirm={handleDeleteConfirm}
                 text={selectedOrganization?.name}
                 title="Delete"
+                confirmText="Delete"
                 description={`This action will permanently delete the organization "${selectedOrganization?.name}". This action cannot be undone. Are you sure you want to proceed?`}
             />
 

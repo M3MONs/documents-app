@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from schemas.pagination import PaginationParams, PaginationResponse
@@ -11,11 +12,16 @@ class OrganizationRepository:
     ) -> PaginationResponse:
         from schemas.user import UserWithAssignment
         
+        try:
+            org_uuid = uuid.UUID(organization_id)
+        except ValueError:
+            raise ValueError(f"Invalid UUID format for organization_id: {organization_id}")
+        
         query = select(User).outerjoin(
             user_organizations,
-            (user_organizations.c.user_id == User.id) & (user_organizations.c.organization_id == organization_id)
+            (user_organizations.c.user_id == User.id) & (user_organizations.c.organization_id == org_uuid)
         ).add_columns(
-            (User.primary_organization_id == organization_id) | (user_organizations.c.organization_id.isnot(None))
+            (User.primary_organization_id == org_uuid) | (user_organizations.c.organization_id.isnot(None))
         )
 
         total_query = select(func.count()).select_from(query.subquery())
@@ -37,6 +43,7 @@ class OrganizationRepository:
             user, is_assigned = row
             user_dict = UserWithAssignment.model_validate(user).dict()
             user_dict['is_assigned'] = is_assigned
+            user_dict['is_primary'] = user.primary_organization_id == org_uuid
             user_schemas.append(UserWithAssignment(**user_dict))
 
         return PaginationResponse(total=total, items=user_schemas)

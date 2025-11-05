@@ -78,3 +78,7 @@ class UserService:
     @staticmethod
     async def assign_user_to_organization(db: AsyncSession, user_id: str, organization_id: str, set_primary: bool = False) -> None:
         await UserRepository.assign_user_to_organization(db, user_id, organization_id, set_primary=set_primary)
+        
+    @staticmethod
+    async def unassign_user_from_organization(db: AsyncSession, user_id: str, organization_id: str) -> None:
+        await UserRepository.unassign_user_from_organization(db, user_id, organization_id)

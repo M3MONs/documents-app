@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronsUpDown } from "lucide-react";
 
 import {
@@ -11,11 +11,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { useAuth } from "@/context/AuthContext";
+import type { Organization } from "@/types/organization";
 
 export function OrganizationSwitcher() {
     const { isMobile } = useSidebar();
-    const [organizations, _] = useState<any[] | null>(null);
-    const [activeOrganization, setActiveOrganization] = useState<any | null>(null);
+    const { user } = useAuth();
+    const [organizations, setOrganizations] = useState<Organization[] | null>(null);
+    const [activeOrganization, setActiveOrganization] = useState<Organization | null>(null);
+
+    useEffect(() => {
+        if (user) {
+            setOrganizations(user.additional_organizations || []);
+            setActiveOrganization(user.primary_organization || null);
+        }
+    }, [user]);
 
     return (
         <SidebarMenu>
@@ -28,7 +38,7 @@ export function OrganizationSwitcher() {
                             disabled={!organizations}
                         >
                             <Avatar className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                                <AvatarImage src={activeOrganization?.logo} alt={activeOrganization?.name} />
+                                <AvatarImage src={""} alt={activeOrganization?.name} />
                                 <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                                     {activeOrganization ? activeOrganization?.name.charAt(0) : "N"}
                                 </AvatarFallback>
@@ -57,7 +67,7 @@ export function OrganizationSwitcher() {
                             >
                                 <div className="flex size-6 items-center justify-center rounded-md border">
                                     <Avatar>
-                                        <AvatarImage src={organization.logo} alt={organization.name} />
+                                        <AvatarImage src={""} alt={organization.name} />
                                         <AvatarFallback>{organization.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                 </div>

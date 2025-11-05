@@ -5,12 +5,13 @@ interface DeactivateDialogProps {
     isOpen: boolean;
     text?: string;
     title?: string;
+    confirmText?: string;
     description?: string;
     onClose: () => void;
     onConfirm: () => void;
 }
 
-const DeactivateDialog = ({ isOpen, text, title, description, onClose, onConfirm }: DeactivateDialogProps) => {
+const DeactivateDialog = ({ isOpen, text, title, confirmText, description, onClose, onConfirm }: DeactivateDialogProps) => {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
@@ -25,7 +26,7 @@ const DeactivateDialog = ({ isOpen, text, title, description, onClose, onConfirm
                         Cancel
                     </Button>
                     <Button variant="destructive" onClick={onConfirm}>
-                        Deactivate
+                        {confirmText ? confirmText : "Deactivate"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -65,6 +65,7 @@ export const columns = (onEdit?: (user: User) => void, onDelete?: (user: User) =
     },
     {
         id: "actions",
+        header: "Actions",
         cell: ({ row }) => {
             const user = row.original;
             return (

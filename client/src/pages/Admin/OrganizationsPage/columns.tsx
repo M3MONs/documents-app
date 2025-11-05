@@ -12,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Organization } from "@/types/organization";
+import { booleanFilter } from "@/utils/booleanFilter";
 
 export const columns = (
     onEdit?: (organization: Organization) => void,
@@ -67,16 +68,7 @@ export const columns = (
         },
         filterFn: (row, columnId, filterValue) => {
             const value = row.getValue(columnId) as boolean;
-            const lowerFilter = filterValue.toLowerCase();
-            if (lowerFilter === "") return true;
-
-            if (lowerFilter === "yes" || lowerFilter === "1" || lowerFilter === "true") {
-                return value === true;
-            }
-            if (lowerFilter === "no" || lowerFilter === "0") {
-                return value === false;
-            }
-            return false;
+            return booleanFilter(value, filterValue);
         },
         meta: { filterable: true },
     },

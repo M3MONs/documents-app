@@ -12,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { User } from "@/types/user";
+import { booleanFilter } from "@/utils/booleanFilter";
 
 export const columns = (onEdit?: (user: User) => void, onDelete?: (user: User) => void): ColumnDef<User>[] => [
     {
@@ -58,14 +59,7 @@ export const columns = (onEdit?: (user: User) => void, onDelete?: (user: User) =
         },
         filterFn: (row, columnId, filterValue) => {
             const value = row.getValue(columnId) as boolean;
-            const lowerFilter = filterValue.toLowerCase();
-            if (lowerFilter === "") return true;
-
-            if (lowerFilter === "yes" || lowerFilter === "1" || lowerFilter === "true") return value === true;
-
-            if (lowerFilter === "no" || lowerFilter === "0") return value === false;
-
-            return false;
+            return booleanFilter(value, filterValue);
         },
         meta: { filterable: true },
     },

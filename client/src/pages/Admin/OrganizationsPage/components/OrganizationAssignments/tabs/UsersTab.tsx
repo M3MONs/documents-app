@@ -24,7 +24,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ selectedOrganization }) => {
 
     const refreshData = () => {
         queryClient.invalidateQueries({ queryKey: ["admin/users"] });
-    }
+    };
 
     const { data: usersData, isLoading: usersLoading } = usePaginationQuery(
         ["admin/users"],
@@ -43,7 +43,6 @@ const UsersTab: React.FC<UsersTabProps> = ({ selectedOrganization }) => {
             await AdminService.assignUserToOrganization(user.id, selectedOrganization.id, {
                 set_primary: setPrimary,
             });
-            queryClient.invalidateQueries({ queryKey: ["admin/organization-users", selectedOrganization.id] });
         } catch (err: any) {
             handleApiError(err);
         } finally {
@@ -51,11 +50,23 @@ const UsersTab: React.FC<UsersTabProps> = ({ selectedOrganization }) => {
         }
     };
 
+    const handleUnassignAction = async (user: User) => {
+        if (!selectedOrganization) return;
+
+        try {
+            await AdminService.unassignUserFromOrganization(user.id, selectedOrganization.id);
+        } catch (err: any) {
+            handleApiError(err);
+        } finally {
+            refreshData();
+        }
+    }
+
     const handlePaginationChange = (updaterOrValue: Updater<{ pageIndex: number; pageSize: number }>) => {
         setPagination((prev) => (typeof updaterOrValue === "function" ? updaterOrValue(prev) : updaterOrValue));
     };
 
-    const columns = getUsersColumns(handleAssignAction);
+    const columns = getUsersColumns(handleAssignAction, handleUnassignAction);
 
     return (
         <div className="flex-1 overflow-hidden flex flex-col">

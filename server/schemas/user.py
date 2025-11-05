@@ -18,3 +18,4 @@ class User(BaseModel):
         
 class UserWithAssignment(User):
     is_assigned: bool | None = None
+    is_primary: bool | None = None

@@ -1,4 +1,5 @@
 import apiClient from "@/services/apiClient";
+import type { DepartmentCreatePayload } from "@/types/department";
 import type { OrganizationCreatePayload } from "@/types/organization";
 import type { PaginationParams } from "@/types/pagination";
 import type { UserAssignOrganizationPayload, UserEditPayload, UserPasswordResetPayload } from "@/types/user";
@@ -6,6 +7,8 @@ import type { UserAssignOrganizationPayload, UserEditPayload, UserPasswordResetP
 const URL = "/admin";
 
 export default class AdminService {
+    // User Management
+
     static getUsers = async (pagination: PaginationParams, organizationId?: string) => {
         const params = { ...pagination };
         if (organizationId) {
@@ -44,6 +47,8 @@ export default class AdminService {
     static updateUser = async (userId: string, payload: UserEditPayload) => {
         await apiClient.put(`${URL}/users/${userId}`, payload);
     };
+
+    // Organization Management
 
     static getOrganizations = async (pagination: PaginationParams) => {
         const params = { ...pagination };
@@ -87,4 +92,37 @@ export default class AdminService {
     static unassignUserFromOrganization = async (userId: string, organizationId: string) => {
         await apiClient.post(`${URL}/organizations/${organizationId}/users/${userId}/unassign`);
     }
+
+    // Department Management
+
+    static getDepartments = async (pagination: PaginationParams) => {
+        const params = { ...pagination };
+
+        if (params.filters && Array.isArray(params.filters) && params.filters.length > 0) {
+            const filter = params.filters[0];
+            params.filter_field = filter[0];
+            params.filter_value = filter[1];
+        }
+
+        delete params.filters;
+        const response = await apiClient.get(`${URL}/departments`, {
+            params,
+        });
+        
+        return response.data;
+    }
+
+    static createDepartment = async (payload: DepartmentCreatePayload) => {
+        const response = await apiClient.post(`${URL}/departments`, payload);
+        return response.data;
+    };
+
+    static updateDepartment = async (departmentId: string, payload: DepartmentCreatePayload) => {
+        const response = await apiClient.put(`${URL}/departments/${departmentId}`, payload);
+        return response.data;
+    };
+
+    static deleteDepartment = async (departmentId: string) => {
+        await apiClient.delete(`${URL}/departments/${departmentId}`);
+    };
 }

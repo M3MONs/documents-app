@@ -24,6 +24,11 @@ export default class AdminService {
         return response.data;
     };
 
+    static getUserById = async (userId: string) => {
+        const response = await apiClient.get(`${URL}/users/${userId}`);
+        return response.data;
+    };
+
     static deactivateUser = async (userId: string) => {
         await apiClient.delete(`${URL}/users/${userId}`);
     };

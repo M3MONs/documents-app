@@ -32,8 +32,17 @@ const AdminUsersPage = () => {
         pageSize: 10,
     });
 
-    const refreshData = () => {
-        queryClient.invalidateQueries({ queryKey: ["admin/users"] });
+    const refreshData = async () => {
+        await queryClient.invalidateQueries({ queryKey: ["admin/users"] });
+
+        try {
+            if (selectedUser) {
+                const updatedUser = await AdminService.getUserById(selectedUser.id);
+                setSelectedUser(updatedUser);
+            }
+        } catch (err: any) {
+            handleApiError(err);
+        }
     };
 
     const handleEditAction = (user: User) => {

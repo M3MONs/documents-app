@@ -89,7 +89,7 @@ const AdminOrganizationsPage = () => {
     );
 
     if (error) {
-        console.error("Error fetching organizations:", error);
+        handleApiError(error);
     }
 
     const handlePaginationChange = (updaterOrValue: Updater<{ pageIndex: number; pageSize: number }>) => {

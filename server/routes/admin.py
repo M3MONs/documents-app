@@ -7,6 +7,7 @@ from schemas.pagination import PaginationParams, PaginationResponse
 from services.organization_service import OrganizationService
 from services.user_service import UserService
 from schemas.organization import Organization as OrganizationSchema
+from schemas.user import User as UserSchema
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -21,6 +22,14 @@ async def get_users_paginated(
     users = await UserService.get_paginated_users(db, pagination, organization_id)
 
     return users
+
+
+@router.get("/users/{user_id}", dependencies=[Depends(RoleChecker(["admin"]))], response_model=UserSchema)
+async def get_user_by_id(user_id: str, db: AsyncSession = Depends(get_db)) -> UserSchema | None:
+    user = await UserService.get_user_by_id(db, user_id)
+    if user:
+        return UserSchema.model_validate(user)
+    return None
 
 
 @router.delete("/users/{user_id}", dependencies=[Depends(RoleChecker(["admin"]))])

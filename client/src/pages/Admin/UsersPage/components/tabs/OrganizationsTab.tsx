@@ -55,6 +55,18 @@ const OrganizationsTab = forwardRef<any, OrganizationsTabProps>(({ user }, ref) 
         },
     });
 
+    const resetValues = useMemo(
+        () => ({
+            primary_organization_id: user.primary_organization?.id || null,
+            additional_organization_ids: user.additional_organizations?.map((o) => o.id) || [],
+        }),
+        [user.primary_organization?.id, user.additional_organizations]
+    );
+
+    useEffect(() => {
+        form.reset(resetValues);
+    }, [resetValues]);
+
     const currentAdditionalIds = form.watch("additional_organization_ids");
 
     const availableOrganizations = useMemo(() => {
@@ -166,17 +178,13 @@ const OrganizationsTab = forwardRef<any, OrganizationsTabProps>(({ user }, ref) 
                     ))}
                 </SelectContent>
             </Select>
-            <Button
-                type="button"
-                onClick={() => handleAddOrganization(field)}
-                disabled={!selectedToAdd}
-            >
+            <Button type="button" onClick={() => handleAddOrganization(field)} disabled={!selectedToAdd}>
                 Add
             </Button>
         </div>
     );
 
-    const AdditionalOrganizationsTable = ({ field }: { field: any }) => (
+    const AdditionalOrganizationsTable = ({ field }: { field: any }) =>
         currentAdditionalIds.length > 0 ? (
             <Table>
                 <TableHeader>
@@ -208,8 +216,7 @@ const OrganizationsTab = forwardRef<any, OrganizationsTabProps>(({ user }, ref) 
             </Table>
         ) : (
             <p className="text-sm text-muted-foreground">No additional organizations assigned.</p>
-        )
-    );
+        );
 
     const renderAdditionalOrganizationsSelect = () => {
         return (

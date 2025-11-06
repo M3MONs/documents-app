@@ -14,8 +14,6 @@ interface OrganizationAssignmentsProps {
 const OrganizationAssignments = ({ isOpen, selectedOrganization, onClose }: OrganizationAssignmentsProps) => {
     const [activeTab, setActiveTab] = useState("details");
 
-    // console.log("Selected Organization:", selectedOrganization);
-
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent

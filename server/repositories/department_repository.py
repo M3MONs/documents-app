@@ -1,6 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 from models.department import Department
+from models.user import User
+from models.organization import Organization
+from schemas.pagination import PaginationParams, PaginationResponse
+from schemas.user import UserWithAssignment
 
 
 class DepartmentRepository:
@@ -21,3 +25,65 @@ class DepartmentRepository:
         )
         existing_department = query.scalars().first()
         return existing_department is None
+
+    @staticmethod
+    async def assign_user_to_department(db: AsyncSession, user_id: str, department_id: str) -> None:
+        await db.execute(
+            update(User).where(User.id == user_id).values(department_id=department_id)
+        )
+        await db.commit()
+
+    @staticmethod
+    async def unassign_user_from_department(db: AsyncSession, user_id: str) -> None:
+        await db.execute(
+            update(User).where(User.id == user_id).values(department_id=None)
+        )
+        await db.commit()
+
+    @staticmethod
+    async def get_paginated_users_with_assignment(
+        db: AsyncSession, department_id: str, pagination: PaginationParams
+    ) -> PaginationResponse:
+        import uuid
+        try:
+            dept_uuid = uuid.UUID(department_id)
+        except ValueError:
+            raise ValueError(f"Invalid UUID format for department_id: {department_id}")
+        
+        department = await db.get(Department, dept_uuid)
+        if not department:
+            return PaginationResponse(total=0, items=[])
+
+        query = select(User).where(
+            (User.primary_organization_id == department.organization_id) |
+            (User.additional_organizations.any(Organization.id == department.organization_id))
+        ).add_columns(
+            User.department_id == dept_uuid
+        )
+
+        total_query = select(User).where(
+            (User.primary_organization_id == department.organization_id) |
+            (User.additional_organizations.any(Organization.id == department.organization_id))
+        )
+
+        total_result = await db.execute(total_query)
+        total = len(total_result.scalars().all())
+
+        if pagination.ordering:
+            ordering_column = getattr(User, pagination.ordering, None)
+            if ordering_column is not None:
+                query = query.order_by(ordering_column.desc() if pagination.ordering_desc else ordering_column.asc())
+
+        query = query.offset(pagination.offset).limit(pagination.page_size)
+
+        result = await db.execute(query)
+        rows = result.all()
+
+        user_schemas = []
+        for row in rows:
+            user, is_assigned = row
+            user_dict = UserWithAssignment.model_validate(user).dict()
+            user_dict['is_assigned'] = is_assigned
+            user_schemas.append(UserWithAssignment(**user_dict))
+
+        return PaginationResponse(total=total, items=user_schemas)

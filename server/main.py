@@ -4,7 +4,8 @@ from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from core.database import engine, Base
 from models import organization, department, role, user  # noqa: F401
-from routes import auth, admin
+from routes import auth
+from routes.admin import admin_user, admin_organization, admin_department
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +30,9 @@ def get_status() -> dict[str, str]:
 api_router = APIRouter(prefix="/api")
 
 api_router.include_router(auth.router)
-api_router.include_router(admin.router)
+
+api_router.include_router(admin_user.router)
+api_router.include_router(admin_organization.router)
+api_router.include_router(admin_department.router)
 
 app.include_router(api_router)

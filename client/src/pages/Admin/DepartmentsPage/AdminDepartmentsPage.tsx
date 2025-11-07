@@ -7,11 +7,14 @@ import type { ColumnFiltersState, SortingState, Updater } from "@tanstack/react-
 import { useState } from "react";
 import { columns } from "./columns";
 import CreateEditDepartment from "./components/CreateEditDepartment";
+import type { Department } from "@/types/department";
+import DepartmentAssignments from "./components/DepartmentAssignments/DepartmentAssignments";
 
 const AdminDepartmentsPage = () => {
     const queryClient = useQueryClient();
-    const [selectedDepartment, setSelectedDepartment] = useState(null);
+    const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
     const [isCreateEditDialogOpen, setIsCreateEditDialogOpen] = useState(false);
+    const [isDepartmentAssignmentsOpen, setIsDepartmentAssignmentsOpen] = useState(false);
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -26,6 +29,11 @@ const AdminDepartmentsPage = () => {
 
     const handleDeleteAction = (department: any) => {
         setSelectedDepartment(department);
+    };
+
+    const handleAssignmentsAction = (department: any) => {
+        setSelectedDepartment(department);
+        setIsDepartmentAssignmentsOpen(true);
     };
 
     const handleEditAction = (department: any) => {
@@ -54,7 +62,7 @@ const AdminDepartmentsPage = () => {
         <div className="p-4">
             <TableLayout
                 data={data}
-                columns={columns(handleEditAction, handleDeleteAction)}
+                columns={columns(handleEditAction, handleDeleteAction, handleAssignmentsAction)}
                 isLoading={isLoading}
                 sorting={sorting}
                 columnFilters={columnFilters}
@@ -72,6 +80,12 @@ const AdminDepartmentsPage = () => {
                 onClose={() => setIsCreateEditDialogOpen(false)}
                 onConfirm={refreshData}
                 department={selectedDepartment || undefined}
+            />
+
+            <DepartmentAssignments
+                isOpen={isDepartmentAssignmentsOpen}
+                selectedDepartment={selectedDepartment}
+                onClose={() => {setIsDepartmentAssignmentsOpen(false); setSelectedDepartment(null)}}
             />
         </div>
     );

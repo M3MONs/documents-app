@@ -11,12 +11,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Organization } from "@/types/organization";
+import type { Department } from "@/types/department";
 
 export const columns = (
-    onEdit?: (organization: Organization) => void,
-    onDelete?: (organization: Organization) => void
-): ColumnDef<Organization>[] => [
+    onEdit?: (department: Department) => void,
+    onDelete?: (department: Department) => void,
+    onAssignments?: (department: Department) => void
+): ColumnDef<Department>[] => [
     {
         accessorKey: "name",
         header: ({ column }) => {
@@ -63,6 +64,8 @@ export const columns = (
                         <DropdownMenuSeparator />
 
                         <DropdownMenuItem onClick={() => onEdit?.(department)}>Edit</DropdownMenuItem>
+
+                        <DropdownMenuItem onClick={() => onAssignments?.(department)}>Assignments</DropdownMenuItem>
 
                         <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(department)}>
                             Delete

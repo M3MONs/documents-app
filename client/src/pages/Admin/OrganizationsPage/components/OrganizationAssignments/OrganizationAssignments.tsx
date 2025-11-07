@@ -29,14 +29,9 @@ const OrganizationAssignments = ({ isOpen, selectedOrganization, onClose }: Orga
                         onValueChange={setActiveTab}
                         className="w-full flex flex-col flex-1 overflow-hidden"
                     >
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="departments">Departments</TabsTrigger>
+                        <TabsList className="grid w-full grid-cols-1">
                             <TabsTrigger value="users">Users</TabsTrigger>
                         </TabsList>
-
-                        <TabsContent value="departments">
-                            <div className="p-4">Manage Departments for {selectedOrganization?.name}</div>
-                        </TabsContent>
 
                         <TabsContent value="users">
                             <UsersTab selectedOrganization={selectedOrganization} />

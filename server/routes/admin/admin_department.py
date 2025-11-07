@@ -64,3 +64,57 @@ async def update_department(
         raise HTTPException(status_code=400, detail="Department name must be unique")
 
     await DepartmentService.update_department(db, department_id=department_id, payload=payload)
+
+
+@router.get(
+    "/{department_id}/users",
+    dependencies=[Depends(RoleChecker(["admin"]))],
+    response_model=PaginationResponse,
+)
+async def get_department_users_paginated(
+    department_id: str,
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(),
+) -> PaginationResponse:
+    department = await DepartmentService.get_department_by_id(db, department_id)
+
+    if not department:
+        raise HTTPException(status_code=404, detail="Department not found")
+
+    users = await DepartmentService.get_paginated_users_with_assignment(db, department_id, pagination)
+
+    return users
+
+
+@router.post("/{department_id}/users/{user_id}/assign", dependencies=[Depends(RoleChecker(["admin"]))])
+async def assign_user_to_department(
+    department_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    department = await DepartmentService.get_department_by_id(db, department_id)
+    if not department:
+        raise HTTPException(status_code=404, detail="Department not found")
+
+    try:
+        await DepartmentService.assign_user_to_department(db, user_id, department_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    "/{department_id}/users/{user_id}/unassign", dependencies=[Depends(RoleChecker(["admin"]))]
+)
+async def unassign_user_from_department(
+    department_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    department = await DepartmentService.get_department_by_id(db, department_id)
+    if not department:
+        raise HTTPException(status_code=404, detail="Department not found")
+
+    try:
+        await DepartmentService.unassign_user_from_department(db, user_id, department_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

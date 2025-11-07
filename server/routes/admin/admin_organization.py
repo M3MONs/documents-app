@@ -12,10 +12,9 @@ from schemas.organization import Organization as OrganizationSchema
 
 router = APIRouter(prefix="/admin/organizations", tags=["admin_organizations"])
 
-@router.get("", response_model=PaginationResponse)
+@router.get("", dependencies=[Depends(RoleChecker(["admin"]))], response_model=PaginationResponse)
 async def get_organizations_paginated(
     db: AsyncSession = Depends(get_db),
-    dependencies=[Depends(RoleChecker(["admin"]))],
     pagination: PaginationParams = Depends(),
 ) -> PaginationResponse:
     organizations = await OrganizationService.get_paginated_organizations(db, pagination)

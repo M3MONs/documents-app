@@ -1,7 +1,9 @@
+import type { Organization } from "./organization";
+
 export interface Department {
     id: string;
     name: string;
-    organization_id: string;
+    organization: Organization;
 }
 
 export interface DepartmentCreatePayload {

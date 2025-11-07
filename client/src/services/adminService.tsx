@@ -27,6 +27,21 @@ export default class AdminService {
         return response.data;
     };
 
+    static getDepartmentUsers = async (pagination: PaginationParams, departmentId: string) => {
+        const params = { ...pagination };
+
+        if (params.filters && Array.isArray(params.filters) && params.filters.length > 0) {
+            const filter = params.filters[0];
+            params.filter_field = filter[0];
+            params.filter_value = filter[1];
+        }
+        delete params.filters;
+        const response = await apiClient.get(`${URL}/departments/${departmentId}/users`, {
+            params,
+        });
+        return response.data;
+    };
+
     static getUserById = async (userId: string) => {
         const response = await apiClient.get(`${URL}/users/${userId}`);
         return response.data;
@@ -124,5 +139,13 @@ export default class AdminService {
 
     static deleteDepartment = async (departmentId: string) => {
         await apiClient.delete(`${URL}/departments/${departmentId}`);
+    };
+
+    static assignUserToDepartment = async (userId: string, departmentId: string) => {
+        await apiClient.post(`${URL}/departments/${departmentId}/users/${userId}/assign`);
+    };
+
+    static unassignUserFromDepartment = async (userId: string, departmentId: string) => {
+        await apiClient.post(`${URL}/departments/${departmentId}/users/${userId}/unassign`);
     };
 }

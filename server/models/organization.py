@@ -14,3 +14,4 @@ class Organization(Base):
 
     departments = relationship("Department", back_populates="organization", cascade="all, delete-orphan")
     users = relationship("User", back_populates="primary_organization", foreign_keys="User.primary_organization_id")
+    user_roles = relationship("UserOrganizationRole", back_populates="organization", cascade="all, delete-orphan", lazy="selectin")

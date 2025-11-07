@@ -37,14 +37,14 @@ const CreateEditDepartment = ({ isOpen, onClose, onConfirm, department }: Create
         resolver: zodResolver(createDepartmentSchema),
         defaultValues: {
             name: department?.name || "",
-            organization_id: department?.organization_id || "",
+            organization_id: department?.organization?.id || "",
         },
     });
 
     useEffect(() => {
         form.reset({
             name: department?.name || "",
-            organization_id: department?.organization_id || "",
+            organization_id: department?.organization?.id || "",
         });
     }, [department?.id]);
 

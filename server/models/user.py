@@ -36,3 +36,4 @@ class User(Base):
 
     department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id"), nullable=True)
     department = relationship("Department", back_populates="users")
+    organization_roles = relationship("UserOrganizationRole", back_populates="user", cascade="all, delete-orphan", lazy="selectin")

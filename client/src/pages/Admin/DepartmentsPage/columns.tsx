@@ -47,6 +47,7 @@ export const columns = (
     },
     {
         id: "actions",
+        header: "Actions",
         cell: ({ row }) => {
             const department = row.original;
             return (

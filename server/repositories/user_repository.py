@@ -1,10 +1,35 @@
+from typing import Sequence
 from sqlalchemy import select, update
+from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from models.organization import Organization
+from models.role import Role
+from models.user_organization_role import UserOrganizationRole
 
 
 class UserRepository:
+    @staticmethod
+    async def user_has_role_in_organization(db: AsyncSession, user_id: str, role_names: set[str] | list[str], organization_id: str) -> bool:
+        if not role_names:
+            return False
+
+        stmt = select(UserOrganizationRole).join(Role).where(
+            UserOrganizationRole.user_id == user_id,
+            UserOrganizationRole.organization_id == organization_id,
+            Role.name.in_(list(role_names))
+        ).limit(1)
+
+        res = await db.execute(stmt)
+        row = res.scalars().first()
+        return row is not None
+
+    @staticmethod
+    async def get_user_organization_roles(db: AsyncSession, user_id: str) -> Sequence[UserOrganizationRole]:
+        stmt = select(UserOrganizationRole).where(UserOrganizationRole.user_id == user_id).options(joinedload(UserOrganizationRole.role), joinedload(UserOrganizationRole.organization))
+        res = await db.execute(stmt)
+        return res.scalars().all()
+    
     @staticmethod
     async def get_by_username(db: AsyncSession, username: str) -> User | None:
         result = await db.execute(select(User).where(User.username == username))

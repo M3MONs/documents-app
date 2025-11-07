@@ -4,6 +4,7 @@ from schemas.department import Department as DepartmentSchema
 from repositories.base_repository import BaseRepository
 from schemas.pagination import PaginationResponse
 from repositories.department_repository import DepartmentRepository
+from services.user_service import UserService
 
 
 class DepartmentService:
@@ -51,3 +52,34 @@ class DepartmentService:
     @staticmethod
     async def validate_department_update(db: AsyncSession, department_id: str, new_name: str) -> bool:
         return await DepartmentRepository.validate_unique_name_on_update(db, department_id, new_name)
+
+    @staticmethod
+    async def get_paginated_users_with_assignment(db: AsyncSession, department_id: str, pagination) -> PaginationResponse:
+        return await DepartmentRepository.get_paginated_users_with_assignment(db, department_id, pagination)
+
+    @staticmethod
+    async def assign_user_to_department(db: AsyncSession, user_id: str, department_id: str) -> None:
+        department = await DepartmentService.get_department_by_id(db, department_id)
+        if not department:
+            raise ValueError(f"Department with id {department_id} not found")
+
+        user = await UserService.get_user_by_id(db, user_id)
+        if not user:
+            raise ValueError(f"User with id {user_id} not found")
+
+        is_assigned_to_org = (
+            str(user.primary_organization_id) == str(department.organization_id) or
+            any(str(org.id) == str(department.organization_id) for org in user.additional_organizations)
+        )
+        if not is_assigned_to_org:
+            raise ValueError(f"User {user_id} is not assigned to organization {department.organization_id}")
+
+        await DepartmentRepository.assign_user_to_department(db, user_id, department_id)
+
+    @staticmethod
+    async def unassign_user_from_department(db: AsyncSession, user_id: str, department_id: str) -> None:
+        user = await UserService.get_user_by_id(db, user_id)
+        if not user or str(user.department_id) != department_id:
+            raise ValueError(f"User {user_id} is not assigned to department {department_id}")
+
+        await DepartmentRepository.unassign_user_from_department(db, user_id)

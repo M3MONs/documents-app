@@ -88,7 +88,7 @@ export const columns = (
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onAssignments?.(organization)}>
-                            Manage Assignments
+                            Assignments
                         </DropdownMenuItem>
 
                         <DropdownMenuItem onClick={() => onEdit?.(organization)}>Edit</DropdownMenuItem>

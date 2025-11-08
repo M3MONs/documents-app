@@ -136,3 +136,11 @@ class BaseRepository:
         except Exception as e:
             await db.rollback()
             raise e
+        
+    @staticmethod
+    async def refresh(db: AsyncSession, entity: M, attributes: list[str]) -> M:
+        try:
+            await db.refresh(entity, attribute_names=attributes)
+            return entity
+        except Exception as e:
+            raise e

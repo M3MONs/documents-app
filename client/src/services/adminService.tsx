@@ -4,6 +4,7 @@ import type { OrganizationCreatePayload } from "@/types/organization";
 import type { PaginationParams } from "@/types/pagination";
 import type { RoleCreatePayload } from "@/types/role";
 import type { UserAssignOrganizationPayload, UserEditPayload, UserPasswordResetPayload } from "@/types/user";
+import type { UserOrganizationRoleCreatePayload, UserOrganizationRoleUpdatePayload } from "@/types/userOrganizationRole";
 
 const URL = "/admin";
 
@@ -168,5 +169,31 @@ export default class AdminService {
 
     static deleteRole = async (roleId: string) => {
         await apiClient.delete(`${URL}/roles/${roleId}`);
+    };
+
+    // User Organization Roles
+
+    static getUserOrganizationRoles = async (userId: string) => {
+        const response = await apiClient.get(`${URL}/user-organization-roles/user/${userId}`);
+        return response.data;
+    };
+
+    static getUserRolesInOrganization = async (userId: string, organizationId: string) => {
+        const response = await apiClient.get(`${URL}/user-organization-roles/user/${userId}/organization/${organizationId}`);
+        return response.data;
+    };
+
+    static assignRoleToUserInOrganization = async (payload: UserOrganizationRoleCreatePayload) => {
+        const response = await apiClient.post(`${URL}/user-organization-roles`, payload);
+        return response.data;
+    };
+
+    static updateUserOrganizationRole = async (uorId: string, payload: UserOrganizationRoleUpdatePayload) => {
+        const response = await apiClient.put(`${URL}/user-organization-roles/${uorId}`, payload);
+        return response.data;
+    };
+
+    static removeRoleFromUserInOrganization = async (uorId: string) => {
+        await apiClient.delete(`${URL}/user-organization-roles/${uorId}`);
     };
 }

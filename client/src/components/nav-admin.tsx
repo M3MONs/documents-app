@@ -5,13 +5,14 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Building2, Group, User } from "lucide-react";
+import { Building2, Group, User, Crown } from "lucide-react";
 import { NavLink } from "react-router";
 
 const ADMIN_PAGES = [
     { name: "Users", path: "/admin/users", icon: User },
     { name: "Organizations", path: "/admin/organizations", icon: Building2 },
     { name: "Departments", path: "/admin/departments", icon: Group },
+    { name: "Roles", path: "/admin/roles", icon: Crown },
 ];
 
 export function NavAdmin() {

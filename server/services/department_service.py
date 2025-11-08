@@ -32,6 +32,7 @@ class DepartmentService:
     async def create_department(db: AsyncSession, payload) -> Department:
         department = Department(**payload.dict())
         await BaseRepository.create(db, department)
+        await BaseRepository.refresh(db, department, ["organization"])
         return department
     
     

@@ -87,3 +87,13 @@ class DepartmentRepository:
             user_schemas.append(UserWithAssignment(**user_dict))
 
         return PaginationResponse(total=total, items=user_schemas)
+
+    @staticmethod
+    async def get_by_name_and_organization(db: AsyncSession, name: str, organization_id: str) -> Department | None:
+        query = await db.execute(
+            select(Department).where(
+                Department.name == name,
+                Department.organization_id == organization_id
+            )
+        )
+        return query.scalars().first()

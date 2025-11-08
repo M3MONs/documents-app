@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from core.database import engine, Base
 from models import organization, department, role, user  # noqa: F401
 from routes import auth
-from routes.admin import admin_user, admin_organization, admin_department, admin_role
+from routes.admin import admin_user, admin_organization, admin_department, admin_role, admin_user_organization_role
 
 
 @asynccontextmanager
@@ -37,5 +37,6 @@ api_router.include_router(admin_user.router)
 api_router.include_router(admin_organization.router)
 api_router.include_router(admin_department.router)
 api_router.include_router(admin_role.router)
+api_router.include_router(admin_user_organization_role.router)
 
 app.include_router(api_router)

@@ -2,15 +2,16 @@ import { createContext, useState, useContext, useEffect } from "react";
 import { setAuthToken } from "../services/tokenManager";
 import AuthService from "@/services/authService";
 import type { User } from "@/types/user";
+import type { Organization } from "@/types/organization";
 
 interface AuthContextType {
     token: string | null;
     user: User | null;
-    selectedOrganizationId: string | null;
+    selectedOrganization: Organization | null;
     isLoading: boolean;
     setToken: (token: string | null) => void;
     setUser: (user: User | null) => void;
-    setSelectedOrganizationId: (id: string | null) => void;
+    setSelectedOrganization: (organization: Organization | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: any }) => {
     const [token, setToken] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
-    const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | null>(null);
+    const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const handleSetToken = (newToken: string | null) => {
@@ -29,8 +30,8 @@ export const AuthProvider = ({ children }: { children: any }) => {
         setUser(newUser);
     };
 
-    const handleSetSelectedOrganizationId = (newId: string | null) => {
-        setSelectedOrganizationId(newId);
+    const handleSetSelectedOrganization = (newOrganization: Organization | null) => {
+        setSelectedOrganization(newOrganization);
     };
 
     useEffect(() => {
@@ -62,11 +63,11 @@ export const AuthProvider = ({ children }: { children: any }) => {
     const value = {
         token,
         user,
-        selectedOrganizationId,
+        selectedOrganization,
         isLoading,
         setToken: handleSetToken,
         setUser: handleSetUser,
-        setSelectedOrganizationId: handleSetSelectedOrganizationId,
+        setSelectedOrganization: handleSetSelectedOrganization,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

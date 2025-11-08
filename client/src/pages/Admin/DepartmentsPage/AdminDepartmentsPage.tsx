@@ -9,12 +9,14 @@ import { columns } from "./columns";
 import CreateEditDepartment from "./components/CreateEditDepartment";
 import type { Department } from "@/types/department";
 import DepartmentAssignments from "./components/DepartmentAssignments/DepartmentAssignments";
+import DeactivateDialog from "@/components/molecules/DeactivateDialog";
 
 const AdminDepartmentsPage = () => {
     const queryClient = useQueryClient();
     const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
     const [isCreateEditDialogOpen, setIsCreateEditDialogOpen] = useState(false);
     const [isDepartmentAssignmentsOpen, setIsDepartmentAssignmentsOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -29,7 +31,20 @@ const AdminDepartmentsPage = () => {
 
     const handleDeleteAction = (department: any) => {
         setSelectedDepartment(department);
+        setIsDeleteDialogOpen(true);
     };
+
+    const handleDeleteConfirm = async () => {
+        if (!selectedDepartment) return;
+        try {
+            await AdminService.deleteDepartment(selectedDepartment.id);
+            setIsDeleteDialogOpen(false);
+            setSelectedDepartment(null);
+            refreshData();
+        } catch (error) {
+            handleApiError(error);
+        }
+    }
 
     const handleAssignmentsAction = (department: any) => {
         setSelectedDepartment(department);
@@ -73,6 +88,16 @@ const AdminDepartmentsPage = () => {
                 setPagination={handlePaginationChange}
                 isAddButtonVisible={true}
                 onAddButtonClick={() => setIsCreateEditDialogOpen(true)}
+            />
+
+            <DeactivateDialog
+                isOpen={isDeleteDialogOpen}
+                onClose={() => setIsDeleteDialogOpen(false)}
+                onConfirm={handleDeleteConfirm}
+                text={selectedDepartment?.name}
+                title="Delete"
+                confirmText="Delete"
+                description={`This action will permanently delete the department "${selectedDepartment?.name}". This action cannot be undone. Are you sure you want to proceed?`}
             />
 
             <CreateEditDepartment

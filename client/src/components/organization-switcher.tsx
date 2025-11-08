@@ -16,7 +16,7 @@ import type { Organization } from "@/types/organization";
 
 export function OrganizationSwitcher() {
     const { isMobile } = useSidebar();
-    const { user } = useAuth();
+    const { user, setSelectedOrganizationId } = useAuth();
     const [organizations, setOrganizations] = useState<Organization[] | null>(null);
     const [activeOrganization, setActiveOrganization] = useState<Organization | null>(null);
 
@@ -24,8 +24,14 @@ export function OrganizationSwitcher() {
         if (user) {
             setOrganizations(user.additional_organizations || []);
             setActiveOrganization(user.primary_organization || null);
+            setSelectedOrganizationId(user.primary_organization ? user.primary_organization.id : null);
         }
     }, [user]);
+
+    const handleOrganizationChange = (organization: Organization | null) => {
+        setActiveOrganization(organization);
+        setSelectedOrganizationId(organization ? organization.id : null);
+    };
 
     return (
         <SidebarMenu>
@@ -62,7 +68,7 @@ export function OrganizationSwitcher() {
                         {organizations?.map((organization, index) => (
                             <DropdownMenuItem
                                 key={organization.name}
-                                onClick={() => setActiveOrganization(organization)}
+                                onClick={() => handleOrganizationChange(organization)}
                                 className="gap-2 p-2"
                             >
                                 <div className="flex size-6 items-center justify-center rounded-md border">

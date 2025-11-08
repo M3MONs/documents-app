@@ -12,7 +12,7 @@ class UserOrganizationRole(Base):
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
     role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), nullable=False, index=True)
 
-    is_primary = Column(Boolean, default=False)  # jeśli chcesz śledzić primary assignment per-org
+    is_primary = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="organization_roles")

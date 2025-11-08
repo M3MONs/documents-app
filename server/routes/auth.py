@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
-from schemas.auth import LoginResponse, LogoutResponse
+from schemas.auth import LoginPayload, RegisterPayload, LoginResponse, LogoutResponse
 from models.user import User
 from services.user_service import UserService
 from services.auth_service import AuthService
@@ -27,12 +26,6 @@ async def get_current_user(
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
-
-class LoginPayload(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50, description="The username of the user")
-    password: str = Field(..., min_length=8, max_length=100, description="The password of the user")
-    provider: str = Field(default="local", description="The authentication provider")
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -75,19 +68,6 @@ async def refresh_token(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
     return AuthService.create_login_response(user, response)
-
-
-class RegisterPayload(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50, description="The desired username")
-    email: EmailStr | None = Field(None, description="The user's email address")
-    password: str = Field(..., min_length=8, max_length=100, description="The desired password")
-
-    @field_validator("email", mode='before')
-    @classmethod
-    def empty_str_to_none(cls, v: str) -> str | None:
-        if v == "":
-            return None
-        return v
 
 
 @router.post("/register", response_model=LoginResponse)

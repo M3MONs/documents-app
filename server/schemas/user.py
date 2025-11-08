@@ -1,7 +1,16 @@
 import uuid
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from schemas.role import Role
 from schemas.organization import Organization
+
+
+class PasswordResetPayload(BaseModel):
+    new_password: str = Field(..., min_length=8, max_length=100, description="The new password for the user")
+
+
+class UserEditPayload(BaseModel):
+    email: str = Field(..., description="The new email for the user")
+
 
 class User(BaseModel):
     id: uuid.UUID

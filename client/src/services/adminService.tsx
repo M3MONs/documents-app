@@ -2,25 +2,32 @@ import apiClient from "@/services/apiClient";
 import type { DepartmentCreatePayload } from "@/types/department";
 import type { OrganizationCreatePayload } from "@/types/organization";
 import type { PaginationParams } from "@/types/pagination";
+import type { RoleCreatePayload } from "@/types/role";
 import type { UserAssignOrganizationPayload, UserEditPayload, UserPasswordResetPayload } from "@/types/user";
 
 const URL = "/admin";
+
+const handleFilterParams = (params: PaginationParams) => {
+    if (params.filters && Array.isArray(params.filters) && params.filters.length > 0) {
+        const filter = params.filters[0];
+        params.filter_field = filter[0];
+        params.filter_value = filter[1];
+    }
+    delete params.filters;
+};
 
 export default class AdminService {
     // User Management
 
     static getUsers = async (pagination: PaginationParams, organizationId?: string) => {
         const params = { ...pagination };
+
         if (organizationId) {
             params.organization_id = organizationId;
         }
 
-        if (params.filters && Array.isArray(params.filters) && params.filters.length > 0) {
-            const filter = params.filters[0];
-            params.filter_field = filter[0];
-            params.filter_value = filter[1];
-        }
-        delete params.filters;
+        handleFilterParams(params);
+
         const response = await apiClient.get(`${URL}/users`, {
             params,
         });
@@ -30,12 +37,8 @@ export default class AdminService {
     static getDepartmentUsers = async (pagination: PaginationParams, departmentId: string) => {
         const params = { ...pagination };
 
-        if (params.filters && Array.isArray(params.filters) && params.filters.length > 0) {
-            const filter = params.filters[0];
-            params.filter_field = filter[0];
-            params.filter_value = filter[1];
-        }
-        delete params.filters;
+        handleFilterParams(params);
+
         const response = await apiClient.get(`${URL}/departments/${departmentId}/users`, {
             params,
         });
@@ -68,17 +71,12 @@ export default class AdminService {
     static getOrganizations = async (pagination: PaginationParams) => {
         const params = { ...pagination };
 
-        if (params.filters && Array.isArray(params.filters) && params.filters.length > 0) {
-            const filter = params.filters[0];
-            params.filter_field = filter[0];
-            params.filter_value = filter[1];
-        }
+        handleFilterParams(params);
 
-        delete params.filters;
         const response = await apiClient.get(`${URL}/organizations`, {
             params,
         });
-        
+
         return response.data;
     };
 
@@ -106,26 +104,21 @@ export default class AdminService {
 
     static unassignUserFromOrganization = async (userId: string, organizationId: string) => {
         await apiClient.post(`${URL}/organizations/${organizationId}/users/${userId}/unassign`);
-    }
+    };
 
     // Department Management
 
     static getDepartments = async (pagination: PaginationParams) => {
         const params = { ...pagination };
 
-        if (params.filters && Array.isArray(params.filters) && params.filters.length > 0) {
-            const filter = params.filters[0];
-            params.filter_field = filter[0];
-            params.filter_value = filter[1];
-        }
+        handleFilterParams(params);
 
-        delete params.filters;
         const response = await apiClient.get(`${URL}/departments`, {
             params,
         });
-        
+
         return response.data;
-    }
+    };
 
     static createDepartment = async (payload: DepartmentCreatePayload) => {
         const response = await apiClient.post(`${URL}/departments`, payload);
@@ -147,5 +140,33 @@ export default class AdminService {
 
     static unassignUserFromDepartment = async (userId: string, departmentId: string) => {
         await apiClient.post(`${URL}/departments/${departmentId}/users/${userId}/unassign`);
+    };
+
+    // Role Management
+
+    static getRoles = async (pagination: PaginationParams) => {
+        const params = { ...pagination };
+
+        handleFilterParams(params);
+
+        const response = await apiClient.get(`${URL}/roles`, {
+            params,
+        });
+
+        return response.data;
+    };
+
+    static createRole = async (payload: RoleCreatePayload) => {
+        const response = await apiClient.post(`${URL}/roles`, payload);
+        return response.data;
+    };
+
+    static updateRole = async (roleId: string, payload: RoleCreatePayload) => {
+        const response = await apiClient.put(`${URL}/roles/${roleId}`, payload);
+        return response.data;
+    };
+
+    static deleteRole = async (roleId: string) => {
+        await apiClient.delete(`${URL}/roles/${roleId}`);
     };
 }

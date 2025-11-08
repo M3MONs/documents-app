@@ -3,3 +3,8 @@ export interface Role {
     name: string;
     description?: string | null;
 }
+
+export interface RoleCreatePayload {
+    name: string;
+    description?: string;
+}

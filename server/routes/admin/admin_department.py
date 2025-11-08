@@ -15,8 +15,8 @@ router = APIRouter(prefix="/admin/departments", tags=["admin_departments"])
 async def get_departments_paginated(
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(),
-) -> PaginationResponse:
-    departments = await DepartmentService.get_paginated_departments(db, pagination.offset, pagination.page_size)
+) -> PaginationResponse | None:
+    departments = await DepartmentService.get_paginated_departments(db, pagination)
     return departments
 
 
@@ -47,6 +47,9 @@ class DepartmentCreatePayload(BaseModel):
 async def create_department(
     payload: DepartmentCreatePayload, db: AsyncSession = Depends(get_db)
 ) -> DepartmentSchema | None:
+    if not await DepartmentService.is_department_name_unique_by_organization(db, payload.organization_id, payload.name):
+        raise HTTPException(status_code=422, detail="Department name must be unique within the organization")
+
     created_department = await DepartmentService.create_department(db, payload)
     return DepartmentSchema.model_validate(created_department)
 

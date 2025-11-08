@@ -16,21 +16,17 @@ import type { Organization } from "@/types/organization";
 
 export function OrganizationSwitcher() {
     const { isMobile } = useSidebar();
-    const { user, setSelectedOrganizationId } = useAuth();
+    const { user, selectedOrganization, setSelectedOrganization } = useAuth();
     const [organizations, setOrganizations] = useState<Organization[] | null>(null);
-    const [activeOrganization, setActiveOrganization] = useState<Organization | null>(null);
 
     useEffect(() => {
         if (user) {
             setOrganizations(user.additional_organizations || []);
-            setActiveOrganization(user.primary_organization || null);
-            setSelectedOrganizationId(user.primary_organization ? user.primary_organization.id : null);
         }
-    }, [user]);
+    }, [user?.id]);
 
     const handleOrganizationChange = (organization: Organization | null) => {
-        setActiveOrganization(organization);
-        setSelectedOrganizationId(organization ? organization.id : null);
+        setSelectedOrganization(organization);
     };
 
     return (
@@ -44,15 +40,15 @@ export function OrganizationSwitcher() {
                             disabled={!organizations}
                         >
                             <Avatar className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                                <AvatarImage src={""} alt={activeOrganization?.name} />
+                                <AvatarImage src={""} alt={selectedOrganization?.name} />
                                 <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                                    {activeOrganization ? activeOrganization?.name.charAt(0) : "N"}
+                                    {selectedOrganization ? selectedOrganization?.name.charAt(0) : "N"}
                                 </AvatarFallback>
                             </Avatar>
 
                             <div className="grid flex-1 text-left text-sm leading-tight">
                                 <span className="truncate font-medium">
-                                    {activeOrganization ? activeOrganization?.name : "No organization"}
+                                    {selectedOrganization ? selectedOrganization?.name : "No organization"}
                                 </span>
                             </div>
                             <ChevronsUpDown className="ml-auto" />

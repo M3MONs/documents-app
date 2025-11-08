@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
-from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
 from services.department_service import DepartmentService
 from core.security import RoleChecker
 from core.database import get_db
-from schemas.department import Department as DepartmentSchema
+from schemas.department import Department as DepartmentSchema, DepartmentCreatePayload
 
 
 router = APIRouter(prefix="/admin/departments", tags=["admin_departments"])
@@ -36,11 +35,6 @@ async def delete_department(department_id: str, db: AsyncSession = Depends(get_d
         raise HTTPException(status_code=404, detail="Department not found")
 
     await DepartmentService.delete_department(db, department_id=department_id)
-
-
-class DepartmentCreatePayload(BaseModel):
-    name: str = Field(..., description="The name for the new department")
-    organization_id: str = Field(..., description="The ID of the organization the department belongs to")
 
 
 @router.post("", dependencies=[Depends(RoleChecker(["admin"]))], response_model=DepartmentSchema)

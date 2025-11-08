@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
-from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
 from services.user_service import UserService
 from core.security import RoleChecker,get_current_user
 from core.database import get_db
-from schemas.user import User as UserSchema
+from schemas.user import User as UserSchema, PasswordResetPayload, UserEditPayload
 
 
 router = APIRouter(prefix="/admin/users", tags=["admin_users"])
@@ -58,10 +57,6 @@ async def activate_user(user_id: str, db: AsyncSession = Depends(get_db)) -> Non
     await UserService.activate_user(db, user_id=user_id)
 
 
-class PasswordResetPayload(BaseModel):
-    new_password: str = Field(..., min_length=8, max_length=100, description="The new password for the user")
-
-
 @router.post("/{user_id}/reset-password", dependencies=[Depends(RoleChecker(["admin"]))])
 async def reset_user_password(
     user_id: str,
@@ -85,10 +80,6 @@ async def reset_user_password(
         raise HTTPException(status_code=403, detail="Cannot reset password for a superuser")
 
     await UserService.reset_user_password(db, user_id=user_id, new_password=payload.new_password)
-
-
-class UserEditPayload(BaseModel):
-    email: str = Field(..., description="The new email for the user")
 
 
 @router.put("/{user_id}", dependencies=[Depends(RoleChecker(["admin"]))])

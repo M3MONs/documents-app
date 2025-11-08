@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
-from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
 from services.organization_service import OrganizationService
 from services.user_service import UserService
 from core.security import RoleChecker
 from core.database import get_db
-from schemas.organization import Organization as OrganizationSchema
+from schemas.organization import Organization as OrganizationSchema, OrganizationCreatePayload, OrganizationEditPayload, AssignUserPayload
 
 
 router = APIRouter(prefix="/admin/organizations", tags=["admin_organizations"])
@@ -32,12 +31,6 @@ async def delete_organization(organization_id: str, db: AsyncSession = Depends(g
     await OrganizationService.delete_organization(db, organization_id=organization_id)
 
 
-class OrganizationEditPayload(BaseModel):
-    name: str = Field(..., description="The new name for the organization")
-    domain: str = Field("", description="The new domain for the organization")
-    is_active: bool = Field(True, description="Whether the organization is active")
-
-
 @router.put("/{organization_id}", dependencies=[Depends(RoleChecker(["admin"]))])
 async def edit_organization(
     organization_id: str, payload: OrganizationEditPayload, db: AsyncSession = Depends(get_db)
@@ -51,12 +44,6 @@ async def edit_organization(
         raise HTTPException(status_code=400, detail="Cannot edit an inactive organization")
 
     await OrganizationService.update_organization(db, organization_id=organization_id, payload=payload)
-
-
-class OrganizationCreatePayload(BaseModel):
-    name: str = Field(..., description="The name for the new organization")
-    domain: str | None = Field("", description="The domain for the new organization")
-    is_active: bool = Field(True, description="Whether the organization is active")
 
 
 @router.post("", dependencies=[Depends(RoleChecker(["admin"]))], response_model=OrganizationSchema)
@@ -94,10 +81,6 @@ async def get_organization_users_paginated(
     users = await UserService.get_paginated_users(db, pagination, organization_id)
 
     return users
-
-
-class AssignUserPayload(BaseModel):
-    set_primary: bool = Field(False, description="Whether to set the organization as the user's primary organization")
 
 
 @router.post("/{organization_id}/users/{user_id}/assign", dependencies=[Depends(RoleChecker(["admin"]))])

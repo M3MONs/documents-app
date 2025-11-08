@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.pagination import PaginationParams
+from schemas.pagination import PaginationParams, PaginationResponse
 from services.role_service import RoleService
 from core.security import RoleChecker
 from core.database import get_db
-from schemas.pagination import PaginationResponse
+from schemas.role import RoleCreatePayload
 
 
 router = APIRouter(prefix="/admin/roles", tags=["admin_roles"])
@@ -18,11 +17,6 @@ async def get_roles_paginated(
 ) -> PaginationResponse:
     roles = await RoleService.get_paginated_roles(db, pagination)
     return roles
-
-
-class RoleCreatePayload(BaseModel):
-    name: str = Field(..., description="The name of the new role")
-    description: str | None = Field(..., description="The description of the new role")
 
 
 @router.post("", dependencies=[Depends(RoleChecker(["admin"]))])

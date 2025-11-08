@@ -32,9 +32,13 @@ class BaseRepository:
         ordering: str | None = None,
         ordering_desc: bool = False,
         filters: list[tuple[str, Any]] | None = None,
+        options: list | None = None,
     ) -> PaginationResponse:
         query = select(model)
         total_query = select(func.count()).select_from(model)
+        
+        if options:
+            query = query.options(*options)
 
         if filters:
             for field, value in filters:

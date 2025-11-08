@@ -1,5 +1,6 @@
 import { AxiosError } from "axios";
 import type { FieldPath, UseFormReturn } from "react-hook-form";
+import { toast } from "sonner";
 
 interface FastAPIValidationError {
     loc: (string | number)[];
@@ -62,6 +63,7 @@ export const handleApiError = (error: unknown) => {
             });
         } else if (typeof errorData.detail === "string") {
             console.error("API Error:", errorData.detail);
+            toast.error(errorData.detail);
         } else {
             console.error("An unexpected error occurred:", errorData);
         }

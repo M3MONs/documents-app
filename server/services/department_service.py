@@ -1,8 +1,9 @@
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.department import Department
 from schemas.department import Department as DepartmentSchema
 from repositories.base_repository import BaseRepository
-from schemas.pagination import PaginationResponse
+from schemas.pagination import PaginationParams, PaginationResponse
 from repositories.department_repository import DepartmentRepository
 from services.user_service import UserService
 
@@ -14,13 +15,17 @@ class DepartmentService:
         return result
     
     @staticmethod
-    async def get_paginated_departments(db: AsyncSession, offset: int, limit: int) -> PaginationResponse:
+    async def get_paginated_departments(db: AsyncSession, pagination: PaginationParams) -> PaginationResponse:
         return await BaseRepository.get_paginated(
             model=Department,
             db=db,
             item_schema=DepartmentSchema,
-            offset=offset,
-            limit=limit
+            offset=pagination.offset,
+            limit=pagination.page_size,
+            ordering=pagination.ordering if pagination.ordering else "name",
+            ordering_desc=pagination.ordering_desc,
+            filters=pagination.filters,
+            options=[selectinload(Department.organization)],
         )
 
     @staticmethod
@@ -83,3 +88,8 @@ class DepartmentService:
             raise ValueError(f"User {user_id} is not assigned to department {department_id}")
 
         await DepartmentRepository.unassign_user_from_department(db, user_id)
+        
+    @staticmethod
+    async def is_department_name_unique_by_organization(db: AsyncSession, organization_id: str, name: str) -> bool:
+        department = await DepartmentRepository.get_by_name_and_organization(db, name, organization_id)
+        return department is None

@@ -11,6 +11,9 @@ import logging
 from core.database import get_db
 from models.user import User
 from repositories.user_repository import UserRepository
+from schemas.pagination import PaginationParams
+from schemas.user import User as UserSchema
+from services.organization_service import OrganizationService
 from services.user_service import UserService
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -113,14 +116,13 @@ class RoleChecker:
             return
 
         if not self.org_param:
+            validated_user = UserSchema.model_validate(current_user)
             user_roles = set()
-            if getattr(current_user, "role", None):
-                user_roles.add(current_user.role.name)
+            if getattr(validated_user, "roles", None):
+                user_roles.update(validated_user.roles)
             if self.required_roles.intersection(user_roles):
                 return
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail=f"User lacks required roles: {list(self.required_roles)}"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User lacks required roles")
 
         org_id = None
         if request:
@@ -143,3 +145,21 @@ class RoleChecker:
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"User lacks required roles {list(self.required_roles)} for organization {org_id}",
         )
+
+    @staticmethod
+    async def get_user_organization_ids(db: AsyncSession, current_user: User, required_roles: list[str]) -> list[str]:
+        if getattr(current_user, "is_superuser", False):
+            all_orgs = await OrganizationService.get_paginated_organizations(
+                db,
+                PaginationParams(
+                    page=1, page_size=10000, ordering="name", ordering_desc=False, filter_field=None, filter_value=None
+                ),
+            )
+            return [str(org.id) for org in all_orgs.items]
+
+        user_org_roles = await UserRepository.get_user_organization_roles(db, str(current_user.id))
+        accessible_org_ids = set()
+        for uor in user_org_roles:
+            if uor.role and uor.role.name in required_roles:
+                accessible_org_ids.add(str(uor.organization_id))
+        return list(accessible_org_ids)

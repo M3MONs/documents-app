@@ -1,5 +1,4 @@
 import type { Organization } from "./organization";
-import type { Role } from "./role";
 
 export interface User {
     id: string;
@@ -7,7 +6,7 @@ export interface User {
     email?: string | null;
     is_active: boolean;
     is_superuser?: boolean | null;
-    role?: Role | null;
+    roles?: string[] | null;
     primary_organization?: Organization | null;
     additional_organizations?: Organization[] | null;
     is_assigned?: boolean | null;

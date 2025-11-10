@@ -2,9 +2,11 @@ import apiClient from "@/services/apiClient";
 import type { DepartmentCreatePayload } from "@/types/department";
 import type { OrganizationCreatePayload } from "@/types/organization";
 import type { PaginationParams } from "@/types/pagination";
-import type { RoleCreatePayload } from "@/types/role";
 import type { UserAssignOrganizationPayload, UserEditPayload, UserPasswordResetPayload } from "@/types/user";
-import type { UserOrganizationRoleCreatePayload, UserOrganizationRoleUpdatePayload } from "@/types/userOrganizationRole";
+import type {
+    UserOrganizationRoleCreatePayload,
+    UserOrganizationRoleUpdatePayload,
+} from "@/types/userOrganizationRole";
 
 const URL = "/admin";
 
@@ -157,20 +159,6 @@ export default class AdminService {
         return response.data;
     };
 
-    static createRole = async (payload: RoleCreatePayload) => {
-        const response = await apiClient.post(`${URL}/roles`, payload);
-        return response.data;
-    };
-
-    static updateRole = async (roleId: string, payload: RoleCreatePayload) => {
-        const response = await apiClient.put(`${URL}/roles/${roleId}`, payload);
-        return response.data;
-    };
-
-    static deleteRole = async (roleId: string) => {
-        await apiClient.delete(`${URL}/roles/${roleId}`);
-    };
-
     // User Organization Roles
 
     static getUserOrganizationRoles = async (userId: string) => {
@@ -179,7 +167,9 @@ export default class AdminService {
     };
 
     static getUserRolesInOrganization = async (userId: string, organizationId: string) => {
-        const response = await apiClient.get(`${URL}/user-organization-roles/user/${userId}/organization/${organizationId}`);
+        const response = await apiClient.get(
+            `${URL}/user-organization-roles/user/${userId}/organization/${organizationId}`
+        );
         return response.data;
     };
 

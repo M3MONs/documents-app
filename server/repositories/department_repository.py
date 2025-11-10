@@ -4,7 +4,7 @@ from models.department import Department
 from models.user import User
 from models.organization import Organization
 from schemas.pagination import PaginationParams, PaginationResponse
-from schemas.user import UserWithAssignment
+from schemas.admin import UserWithAssignment
 
 
 class DepartmentRepository:

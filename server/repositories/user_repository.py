@@ -1,6 +1,6 @@
 from typing import Sequence
 from sqlalchemy import select, update
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from models.organization import Organization
@@ -10,15 +10,22 @@ from models.user_organization_role import UserOrganizationRole
 
 class UserRepository:
     @staticmethod
-    async def user_has_role_in_organization(db: AsyncSession, user_id: str, role_names: set[str] | list[str], organization_id: str) -> bool:
+    async def user_has_role_in_organization(
+        db: AsyncSession, user_id: str, role_names: set[str] | list[str], organization_id: str
+    ) -> bool:
         if not role_names:
             return False
 
-        stmt = select(UserOrganizationRole).join(Role).where(
-            UserOrganizationRole.user_id == user_id,
-            UserOrganizationRole.organization_id == organization_id,
-            Role.name.in_(list(role_names))
-        ).limit(1)
+        stmt = (
+            select(UserOrganizationRole)
+            .join(Role)
+            .where(
+                UserOrganizationRole.user_id == user_id,
+                UserOrganizationRole.organization_id == organization_id,
+                Role.name.in_(list(role_names)),
+            )
+            .limit(1)
+        )
 
         res = await db.execute(stmt)
         row = res.scalars().first()
@@ -26,13 +33,39 @@ class UserRepository:
 
     @staticmethod
     async def get_user_organization_roles(db: AsyncSession, user_id: str) -> Sequence[UserOrganizationRole]:
-        stmt = select(UserOrganizationRole).where(UserOrganizationRole.user_id == user_id).options(joinedload(UserOrganizationRole.role), joinedload(UserOrganizationRole.organization))
+        stmt = (
+            select(UserOrganizationRole)
+            .where(UserOrganizationRole.user_id == user_id)
+            .options(joinedload(UserOrganizationRole.role), joinedload(UserOrganizationRole.organization))
+        )
         res = await db.execute(stmt)
         return res.scalars().all()
-    
+
+    @staticmethod
+    async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
+        query = (
+            select(User)
+            .options(
+                selectinload(User.organization_roles).selectinload(UserOrganizationRole.role),
+                selectinload(User.primary_organization),
+                selectinload(User.additional_organizations),
+            )
+            .where(User.id == user_id)
+        )
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+
     @staticmethod
     async def get_by_username(db: AsyncSession, username: str) -> User | None:
-        result = await db.execute(select(User).where(User.username == username))
+        result = await db.execute(
+            select(User)
+            .options(
+                selectinload(User.organization_roles).selectinload(UserOrganizationRole.role),
+                selectinload(User.primary_organization),
+                selectinload(User.additional_organizations),
+            )
+            .where(User.username == username)
+        )
         return result.scalars().first()
 
     @staticmethod
@@ -65,7 +98,7 @@ class UserRepository:
             user.additional_organizations.append(await db.get(Organization, organization_id))
 
         await db.commit()
-        
+
     @staticmethod
     async def unassign_user_from_organization(db: AsyncSession, user_id: str, organization_id: str) -> None:
         user = await db.get(User, user_id)

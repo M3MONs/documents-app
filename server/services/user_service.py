@@ -1,8 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from models.user import User
-from models.user_organization_role import UserOrganizationRole
 from repositories.user_repository import UserRepository
 from repositories.base_repository import BaseRepository
 from schemas.pagination import PaginationParams, PaginationResponse
@@ -16,17 +13,7 @@ class UserService:
 
     @staticmethod
     async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
-        query = (
-            select(User)
-            .options(
-                selectinload(User.organization_roles).selectinload(UserOrganizationRole.role),
-                selectinload(User.primary_organization),
-                selectinload(User.additional_organizations),
-            )
-            .where(User.id == user_id)
-        )
-        result = await db.execute(query)
-        return result.scalar_one_or_none()
+        return await UserRepository.get_user_by_id(db, user_id=user_id)
 
     @staticmethod
     async def get_user_by_username(db: AsyncSession, username: str) -> User | None:

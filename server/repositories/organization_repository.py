@@ -10,7 +10,7 @@ class OrganizationRepository:
     async def get_paginated_users_with_assignment(
         db: AsyncSession, organization_id: str, pagination: PaginationParams
     ) -> PaginationResponse:
-        from schemas.user import UserWithAssignment
+        from schemas.admin import UserWithAssignment
         
         try:
             org_uuid = uuid.UUID(organization_id)

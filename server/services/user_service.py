@@ -3,10 +3,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from models.user import User
 from models.user_organization_role import UserOrganizationRole
-from schemas.user import User as UserSchema
 from repositories.user_repository import UserRepository
 from repositories.base_repository import BaseRepository
 from schemas.pagination import PaginationParams, PaginationResponse
+from schemas.admin import UserAdmin as UserAdminSchema
 
 
 class UserService:
@@ -16,13 +16,15 @@ class UserService:
 
     @staticmethod
     async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
-        query = select(User).options(
-            selectinload(User.organization_roles).selectinload(UserOrganizationRole.role),
-            selectinload(User.organization_roles).selectinload(UserOrganizationRole.organization),
-            selectinload(User.role),
-            selectinload(User.primary_organization),
-            selectinload(User.additional_organizations),
-        ).where(User.id == user_id)
+        query = (
+            select(User)
+            .options(
+                selectinload(User.organization_roles).selectinload(UserOrganizationRole.role),
+                selectinload(User.primary_organization),
+                selectinload(User.additional_organizations),
+            )
+            .where(User.id == user_id)
+        )
         result = await db.execute(query)
         return result.scalar_one_or_none()
 
@@ -41,15 +43,18 @@ class UserService:
         return user is not None
 
     @staticmethod
-    async def get_paginated_users(db: AsyncSession, pagination: PaginationParams, organization_id: str | None = None) -> PaginationResponse:
+    async def get_paginated_users(
+        db: AsyncSession, pagination: PaginationParams, organization_id: str | None = None
+    ) -> PaginationResponse:
         if organization_id:
             from repositories.organization_repository import OrganizationRepository
+
             return await OrganizationRepository.get_paginated_users_with_assignment(db, organization_id, pagination)
         else:
             return await BaseRepository.get_paginated(
                 model=User,
                 db=db,
-                item_schema=UserSchema,
+                item_schema=UserAdminSchema,
                 offset=pagination.offset,
                 limit=pagination.page_size,
                 ordering=pagination.ordering if pagination.ordering else "created_at",
@@ -76,8 +81,7 @@ class UserService:
         setattr(user, "hashed_password", new_password_hashed)
         await BaseRepository.update(db, user)
 
-
-    @staticmethod    
+    @staticmethod
     async def update_user(db: AsyncSession, user_id: str, payload) -> None:
         user = await BaseRepository.get_by_id(model=User, db=db, entity_id=user_id)
 
@@ -85,11 +89,13 @@ class UserService:
             setattr(user, field, value)
 
         await BaseRepository.update(db, user)
-        
+
     @staticmethod
-    async def assign_user_to_organization(db: AsyncSession, user_id: str, organization_id: str, set_primary: bool = False) -> None:
+    async def assign_user_to_organization(
+        db: AsyncSession, user_id: str, organization_id: str, set_primary: bool = False
+    ) -> None:
         await UserRepository.assign_user_to_organization(db, user_id, organization_id, set_primary=set_primary)
-        
+
     @staticmethod
     async def unassign_user_from_organization(db: AsyncSession, user_id: str, organization_id: str) -> None:
         await UserRepository.unassign_user_from_organization(db, user_id, organization_id)

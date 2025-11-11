@@ -12,6 +12,7 @@ import { handleApiError } from "@/utils/errorHandler";
 import { useQueryClient } from "@tanstack/react-query";
 import ActivateDialog from "@/components/molecules/ActivateDialog";
 import EditUser from "./components/EditUser";
+import { useAuth } from "@/context/AuthContext";
 
 declare module "@tanstack/react-table" {
     interface ColumnMeta<TData extends RowData, TValue> {
@@ -21,6 +22,7 @@ declare module "@tanstack/react-table" {
 
 const AdminUsersPage = () => {
     const queryClient = useQueryClient();
+    const { user: loggedUser } = useAuth();
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
     const [isActivateDialogOpen, setIsActivateDialogOpen] = useState(false);
@@ -111,7 +113,7 @@ const AdminUsersPage = () => {
         <div className="p-4">
             <TableLayout
                 data={data}
-                columns={columns(handleEditAction, handleDeactivateAction)}
+                columns={columns(handleEditAction, handleDeactivateAction, loggedUser?.is_superuser || false)}
                 isLoading={isLoading}
                 sorting={sorting}
                 columnFilters={columnFilters}

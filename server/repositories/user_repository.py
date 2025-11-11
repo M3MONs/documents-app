@@ -105,17 +105,15 @@ class UserRepository:
         if user is None:
             raise ValueError(f"User with id {user_id} not found")
 
-        organization_to_remove = None
-        for org in user.additional_organizations:
-            if str(org.id) == organization_id:
-                organization_to_remove = org
-                break
-
-        if organization_to_remove:
-            user.additional_organizations.remove(organization_to_remove)
-
         if str(user.primary_organization_id) == organization_id:
             setattr(user, "primary_organization_id", None)
-            await db.commit()
         else:
-            await db.commit()
+            organization_to_remove = None
+            for org in user.additional_organizations:
+                if str(org.id) == organization_id:
+                    organization_to_remove = org
+                    break
+            if organization_to_remove:
+                user.additional_organizations.remove(organization_to_remove)
+
+        await db.commit()

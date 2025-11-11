@@ -15,7 +15,7 @@ class DepartmentService:
         return result
     
     @staticmethod
-    async def get_paginated_departments(db: AsyncSession, pagination: PaginationParams) -> PaginationResponse:
+    async def get_paginated_departments(db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | None = None) -> PaginationResponse:
         return await BaseRepository.get_paginated(
             model=Department,
             db=db,
@@ -26,6 +26,7 @@ class DepartmentService:
             ordering_desc=pagination.ordering_desc,
             filters=pagination.filters,
             options=[selectinload(Department.organization)],
+            organization_ids=organization_ids,
         )
 
     @staticmethod

@@ -14,7 +14,7 @@ const AdminPages = () => {
                 <Route element={<ProtectedRoute requiredRoles={[StaticRoles.USER_MANAGER.name]} />}>
                     <Route path="users" element={<AdminUsersPage />} />
                 </Route>
-                <Route element={<ProtectedRoute isSuperuser />}>
+                <Route element={<ProtectedRoute requiredRoles={[StaticRoles.USER_MANAGER.name]} />}>
                     <Route path="organizations" element={<AdminOrganizationsPage />} />
                 </Route>
                 <Route element={<ProtectedRoute requiredRoles={[StaticRoles.DEPARTMENT_MANAGER.name]} />}>

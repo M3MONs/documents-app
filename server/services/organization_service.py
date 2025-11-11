@@ -18,7 +18,7 @@ class OrganizationService:
             await BaseRepository.delete(model=Organization, db=db, entity_id=str(organization.id))
 
     @staticmethod
-    async def get_paginated_organizations(db: AsyncSession, pagination: PaginationParams) -> PaginationResponse:
+    async def get_paginated_organizations(db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | None = None) -> PaginationResponse:
         return await BaseRepository.get_paginated(
             model=Organization,
             db=db,
@@ -28,6 +28,7 @@ class OrganizationService:
             ordering=pagination.ordering if pagination.ordering else "created_at",
             ordering_desc=pagination.ordering_desc,
             filters=pagination.filters,
+            ids=organization_ids,
         )
 
     @staticmethod

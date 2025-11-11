@@ -12,7 +12,8 @@ import { ArrowUpDown, CheckCircle, XCircle } from "lucide-react";
 
 export const getUsersColumns = (
     handleAssignAction: (user: User, setPrimary: boolean) => void,
-    handleUnassignAction: (user: User) => void
+    handleUnassignAction: (user: User) => void,
+    isSuperuser?: boolean
 ): ColumnDef<User>[] => [
     {
         accessorKey: "username",
@@ -92,7 +93,7 @@ export const getUsersColumns = (
                             </DropdownMenuItem>
                         )}
 
-                        {!user.is_primary && (
+                        {!user.is_primary && isSuperuser && (
                             <DropdownMenuItem onClick={() => handleAssignAction(user, true)}>
                                 Assign as Primary
                             </DropdownMenuItem>

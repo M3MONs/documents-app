@@ -33,12 +33,22 @@ class BaseRepository:
         ordering_desc: bool = False,
         filters: list[tuple[str, Any]] | None = None,
         options: list | None = None,
+        ids: list[str] | None = None,
+        organization_ids: list[str] | None = None,
     ) -> PaginationResponse:
         query = select(model)
         total_query = select(func.count()).select_from(model)
         
         if options:
             query = query.options(*options)
+            
+        if ids is not None:
+            query = query.where(getattr(model, 'id').in_(ids))
+            total_query = total_query.where(getattr(model, 'id').in_(ids))
+            
+        if organization_ids is not None:
+            query = query.where(getattr(model, 'organization_id').in_(organization_ids))
+            total_query = total_query.where(getattr(model, 'organization_id').in_(organization_ids))
 
         if filters:
             for field, value in filters:

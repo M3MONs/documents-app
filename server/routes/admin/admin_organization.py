@@ -2,26 +2,38 @@ from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
+from core.roles import StaticRole
+from models.user import User
 from services.organization_service import OrganizationService
 from services.user_service import UserService
-from core.security import RoleChecker
+from core.security import RoleChecker, get_current_user
 from core.database import get_db
-from schemas.organization import Organization as OrganizationSchema, OrganizationCreatePayload, OrganizationEditPayload, AssignUserPayload
+from schemas.organization import (
+    Organization as OrganizationSchema,
+    OrganizationCreatePayload,
+    OrganizationEditPayload,
+    AssignUserPayload,
+)
 
 
 router = APIRouter(prefix="/admin/organizations", tags=["admin_organizations"])
 
-@router.get("", dependencies=[Depends(RoleChecker(["admin"]))], response_model=PaginationResponse)
+
+@router.get(
+    "", dependencies=[Depends(RoleChecker([StaticRole.USER_MANAGER.name_value]))], response_model=PaginationResponse
+)
 async def get_organizations_paginated(
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(),
+    current_user: User = Depends(get_current_user),
 ) -> PaginationResponse:
-    organizations = await OrganizationService.get_paginated_organizations(db, pagination)
+    organization_ids = await RoleChecker.get_user_organization_ids(db, current_user, [StaticRole.USER_MANAGER.name_value])
+    organizations = await OrganizationService.get_paginated_organizations(db, pagination, organization_ids=organization_ids)
 
     return organizations
 
 
-@router.delete("/{organization_id}", dependencies=[Depends(RoleChecker(["admin"]))])
+@router.delete("/{organization_id}", dependencies=[Depends(RoleChecker([]))])
 async def delete_organization(organization_id: str, db: AsyncSession = Depends(get_db)) -> None:
     organization = await OrganizationService.get_organization_by_id(db, organization_id)
 
@@ -31,7 +43,7 @@ async def delete_organization(organization_id: str, db: AsyncSession = Depends(g
     await OrganizationService.delete_organization(db, organization_id=organization_id)
 
 
-@router.put("/{organization_id}", dependencies=[Depends(RoleChecker(["admin"]))])
+@router.put("/{organization_id}", dependencies=[Depends(RoleChecker([]))])
 async def edit_organization(
     organization_id: str, payload: OrganizationEditPayload, db: AsyncSession = Depends(get_db)
 ) -> None:
@@ -46,7 +58,7 @@ async def edit_organization(
     await OrganizationService.update_organization(db, organization_id=organization_id, payload=payload)
 
 
-@router.post("", dependencies=[Depends(RoleChecker(["admin"]))], response_model=OrganizationSchema)
+@router.post("", response_model=OrganizationSchema, dependencies=[Depends(RoleChecker([]))])
 async def create_organization(
     payload: OrganizationCreatePayload, db: AsyncSession = Depends(get_db)
 ) -> OrganizationSchema | None:
@@ -65,8 +77,8 @@ async def create_organization(
 
 @router.get(
     "/{organization_id}/users",
-    dependencies=[Depends(RoleChecker(["admin"]))],
     response_model=PaginationResponse,
+    dependencies=[Depends(RoleChecker([StaticRole.USER_MANAGER.name_value], org_param="organization_id"))],
 )
 async def get_organization_users_paginated(
     organization_id: str,
@@ -83,7 +95,10 @@ async def get_organization_users_paginated(
     return users
 
 
-@router.post("/{organization_id}/users/{user_id}/assign", dependencies=[Depends(RoleChecker(["admin"]))])
+@router.post(
+    "/{organization_id}/users/{user_id}/assign",
+    dependencies=[Depends(RoleChecker([StaticRole.USER_MANAGER.name_value], org_param="organization_id"))],
+)
 async def assign_user_to_organization(
     organization_id: str,
     user_id: str,
@@ -102,7 +117,8 @@ async def assign_user_to_organization(
 
 
 @router.post(
-    "/{organization_id}/users/{user_id}/unassign", dependencies=[Depends(RoleChecker(["admin"]))]
+    "/{organization_id}/users/{user_id}/unassign",
+    dependencies=[Depends(RoleChecker([StaticRole.USER_MANAGER.name_value], org_param="organization_id"))],
 )
 async def unassign_user_from_organization(
     organization_id: str,

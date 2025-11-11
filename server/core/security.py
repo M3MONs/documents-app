@@ -152,7 +152,7 @@ class RoleChecker:
             all_orgs = await OrganizationService.get_paginated_organizations(
                 db,
                 PaginationParams(
-                    page=1, page_size=10000, ordering="name", ordering_desc=False, filter_field=None, filter_value=None
+                    page=1, page_size=100, ordering="name", ordering_desc=False, filter_field=None, filter_value=None
                 ),
             )
             return [str(org.id) for org in all_orgs.items]

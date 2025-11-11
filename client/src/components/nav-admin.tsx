@@ -12,7 +12,7 @@ import { NavLink } from "react-router";
 
 const ADMIN_PAGES = [
     { name: "Users", path: "/admin/users", icon: User, role: StaticRoles.USER_MANAGER },
-    { name: "Organizations", path: "/admin/organizations", icon: Building2, role: null },
+    { name: "Organizations", path: "/admin/organizations", icon: Building2, role: StaticRoles.USER_MANAGER },
     { name: "Departments", path: "/admin/departments", icon: Group, role: StaticRoles.DEPARTMENT_MANAGER },
     { name: "Roles", path: "/admin/roles", icon: Crown, role: null },
 ];

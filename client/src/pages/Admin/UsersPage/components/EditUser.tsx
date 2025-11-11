@@ -6,6 +6,7 @@ import ChangePasswordTab from "./tabs/ChangePasswordTab";
 import EditUserTab from "./tabs/EditUserTab";
 import OrganizationsTab from "./tabs/OrganizationsTab";
 import { useRef, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 interface EditUserProps {
     user?: User;
@@ -16,6 +17,7 @@ interface EditUserProps {
 
 const EditUser = ({ user, isOpen, onClose, onConfirm }: EditUserProps) => {
     if (!user) return null;
+    const {user: loggedUser } = useAuth();
 
     const [activeTab, setActiveTab] = useState("details");
     const editUserRef = useRef<any>(null);
@@ -44,14 +46,14 @@ const EditUser = ({ user, isOpen, onClose, onConfirm }: EditUserProps) => {
                 </DialogHeader>
                 <div>
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto gap-2 mb-4">
+                        <TabsList className={"grid w-full grid-cols-1 h-auto gap-2 mb-4" + (loggedUser?.is_superuser ? " sm:grid-cols-3" : " sm:grid-cols-2")}>
                             <TabsTrigger value="details">User Details</TabsTrigger>
-                            <TabsTrigger value="password">Change Password</TabsTrigger>
+                            {loggedUser?.is_superuser && <TabsTrigger value="password">Change Password</TabsTrigger>}
                             <TabsTrigger value="organization">Organizations</TabsTrigger>
                         </TabsList>
 
                         <EditUserTab ref={editUserRef} user={user} />
-                        <ChangePasswordTab ref={changePasswordRef} user={user} />
+                        {loggedUser?.is_superuser && <ChangePasswordTab ref={changePasswordRef} user={user} />}
                         <OrganizationsTab ref={organizationRef} user={user} />
                     </Tabs>
 

@@ -17,7 +17,8 @@ import { booleanFilter } from "@/utils/booleanFilter";
 export const columns = (
     onEdit?: (organization: Organization) => void,
     onDelete?: (organization: Organization) => void,
-    onAssignments?: (organization: Organization) => void
+    onAssignments?: (organization: Organization) => void,
+    isSuperuser?: boolean
 ): ColumnDef<Organization>[] => [
     {
         accessorKey: "name",
@@ -87,15 +88,17 @@ export const columns = (
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => onAssignments?.(organization)}>
-                            Assignments
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onAssignments?.(organization)}>Assignments</DropdownMenuItem>
 
-                        <DropdownMenuItem onClick={() => onEdit?.(organization)}>Edit</DropdownMenuItem>
+                        {isSuperuser && (
+                            <>
+                                <DropdownMenuItem onClick={() => onEdit?.(organization)}>Edit</DropdownMenuItem>
 
-                        <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(organization)}>
-                            Delete
-                        </DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(organization)}>
+                                    Delete
+                                </DropdownMenuItem>
+                            </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             );

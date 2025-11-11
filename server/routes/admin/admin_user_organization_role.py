@@ -14,12 +14,14 @@ from schemas.user_organization_role import (
 )
 
 
-router = APIRouter(prefix="/admin/user-organization-roles", tags=["admin_user_organization_roles"])
-
-
-@router.get(
-    "/user/{user_id}", dependencies=[Depends(RoleChecker(["admin"]))], response_model=list[UserOrganizationRoleSchema]
+router = APIRouter(
+    prefix="/admin/user-organization-roles",
+    tags=["admin_user_organization_roles"],
+    dependencies=[Depends(RoleChecker([]))],
 )
+
+
+@router.get("/user/{user_id}", response_model=list[UserOrganizationRoleSchema])
 async def get_user_organization_roles(
     user_id: str, db: AsyncSession = Depends(get_db)
 ) -> list[UserOrganizationRoleSchema]:
@@ -34,7 +36,6 @@ async def get_user_organization_roles(
 
 @router.get(
     "/user/{user_id}/organization/{organization_id}",
-    dependencies=[Depends(RoleChecker(["admin"]))],
     response_model=list[UserOrganizationRoleSchema],
 )
 async def get_user_roles_in_organization(
@@ -54,7 +55,7 @@ async def get_user_roles_in_organization(
     return [UserOrganizationRoleSchema.model_validate(uor) for uor in uors]
 
 
-@router.post("", dependencies=[Depends(RoleChecker(["admin"]))], response_model=UserOrganizationRoleSchema)
+@router.post("", response_model=UserOrganizationRoleSchema)
 async def assign_role_to_user_in_organization(
     payload: UserOrganizationRoleCreatePayload, db: AsyncSession = Depends(get_db)
 ) -> UserOrganizationRoleSchema:
@@ -80,7 +81,7 @@ async def assign_role_to_user_in_organization(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.put("/{uor_id}", dependencies=[Depends(RoleChecker(["admin"]))], response_model=UserOrganizationRoleSchema)
+@router.put("/{uor_id}", response_model=UserOrganizationRoleSchema)
 async def update_user_organization_role(
     uor_id: str, payload: UserOrganizationRoleUpdatePayload, db: AsyncSession = Depends(get_db)
 ) -> UserOrganizationRoleSchema:
@@ -95,7 +96,7 @@ async def update_user_organization_role(
     return UserOrganizationRoleSchema.model_validate(updated_uor)
 
 
-@router.delete("/{uor_id}", dependencies=[Depends(RoleChecker(["admin"]))])
+@router.delete("/{uor_id}")
 async def remove_role_from_user_in_organization(uor_id: str, db: AsyncSession = Depends(get_db)) -> None:
     uor = await UserOrganizationRoleService.get_by_id(db, uor_id)
 

@@ -14,7 +14,11 @@ import {
 import type { User } from "@/types/user";
 import { booleanFilter } from "@/utils/booleanFilter";
 
-export const columns = (onEdit?: (user: User) => void, onDelete?: (user: User) => void): ColumnDef<User>[] => [
+export const columns = (
+    onEdit?: (user: User) => void,
+    onDelete?: (user: User) => void,
+    isSuperuser?: boolean
+): ColumnDef<User>[] => [
     {
         accessorKey: "username",
         header: ({ column }) => {
@@ -80,15 +84,16 @@ export const columns = (onEdit?: (user: User) => void, onDelete?: (user: User) =
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onEdit?.(user)}>Edit</DropdownMenuItem>
-                        {user.is_active ? (
-                            <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(user)}>
-                                Deactivate
-                            </DropdownMenuItem>
-                        ) : (
-                            <DropdownMenuItem className="text-green-600" onClick={() => onDelete?.(user)}>
-                                Activate
-                            </DropdownMenuItem>
-                        )}
+                        {isSuperuser &&
+                            (user.is_active ? (
+                                <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(user)}>
+                                    Deactivate
+                                </DropdownMenuItem>
+                            ) : (
+                                <DropdownMenuItem className="text-green-600" onClick={() => onDelete?.(user)}>
+                                    Activate
+                                </DropdownMenuItem>
+                            ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
             );

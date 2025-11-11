@@ -13,6 +13,7 @@ import AdminService from "@/services/adminService";
 import { toast } from "sonner";
 import { handleApiFormError } from "@/utils/errorHandler";
 import { Trash2, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const organizationSchema = z.object({
     primary_organization_id: z.string().nullable(),
@@ -28,6 +29,7 @@ interface OrganizationsTabProps {
 }
 
 const OrganizationsTab = forwardRef<any, OrganizationsTabProps>(({ user }, ref) => {
+    const { user: loggedUser } = useAuth();
     const [organizations, setOrganizations] = useState<Organization[]>([]);
     const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
     const [selectedToAdd, setSelectedToAdd] = useState<string>("");
@@ -196,6 +198,7 @@ const OrganizationsTab = forwardRef<any, OrganizationsTabProps>(({ user }, ref) 
                 <TableBody>
                     {currentAdditionalIds.map((id) => {
                         const org = organizations.find((o) => o.id === id);
+                        if(!org) return null;
                         return (
                             <TableRow key={id}>
                                 <TableCell>{org?.name || id}</TableCell>
@@ -240,7 +243,7 @@ const OrganizationsTab = forwardRef<any, OrganizationsTabProps>(({ user }, ref) 
     return (
         <TabsContent value="organization" className="space-y-4">
             <Form {...form}>
-                {renderPrimaryOrganizationSelect()}
+                {loggedUser?.is_superuser && renderPrimaryOrganizationSelect()}
                 {renderAdditionalOrganizationsSelect()}
             </Form>
         </TabsContent>

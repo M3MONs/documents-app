@@ -7,10 +7,10 @@ from core.database import get_db
 from schemas.role import RoleCreatePayload
 
 
-router = APIRouter(prefix="/admin/roles", tags=["admin_roles"])
+router = APIRouter(prefix="/admin/roles", tags=["admin_roles"], dependencies=[Depends(RoleChecker([]))])
 
 
-@router.get("", dependencies=[Depends(RoleChecker(["admin"]))], response_model=PaginationResponse)
+@router.get("", response_model=PaginationResponse)
 async def get_roles_paginated(
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(),
@@ -19,7 +19,7 @@ async def get_roles_paginated(
     return roles
 
 
-@router.get("/{role_id}", dependencies=[Depends(RoleChecker(["admin"]))], response_model=RoleCreatePayload)
+@router.get("/{role_id}", response_model=RoleCreatePayload)
 async def get_role_by_id(role_id: str, db: AsyncSession = Depends(get_db)) -> RoleCreatePayload | None:
     role = await RoleService.get_role_by_id(db, role_id)
 

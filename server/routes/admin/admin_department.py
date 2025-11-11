@@ -2,24 +2,34 @@ from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
+from core.roles import StaticRole
 from services.department_service import DepartmentService
-from core.security import RoleChecker
+from core.security import RoleChecker, get_current_user
 from core.database import get_db
 from schemas.department import Department as DepartmentSchema, DepartmentCreatePayload
 
 
-router = APIRouter(prefix="/admin/departments", tags=["admin_departments"])
+router = APIRouter(
+    prefix="/admin/departments",
+    tags=["admin_departments"],
+    dependencies=[Depends(RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value]))],
+)
 
-@router.get("", dependencies=[Depends(RoleChecker(["admin"]))], response_model=PaginationResponse)
+
+@router.get("", response_model=PaginationResponse)
 async def get_departments_paginated(
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(),
+    current_user=Depends(get_current_user),
 ) -> PaginationResponse | None:
-    departments = await DepartmentService.get_paginated_departments(db, pagination)
+    organization_ids = await RoleChecker.get_user_organization_ids(
+        db, current_user, [StaticRole.DEPARTMENT_MANAGER.name_value]
+    )
+    departments = await DepartmentService.get_paginated_departments(db, pagination, organization_ids=organization_ids)
     return departments
 
 
-@router.get("/{department_id}", dependencies=[Depends(RoleChecker(["admin"]))], response_model=DepartmentSchema)
+@router.get("/{department_id}", response_model=DepartmentSchema)
 async def get_department_by_id(department_id: str, db: AsyncSession = Depends(get_db)) -> DepartmentSchema | None:
     department = await DepartmentService.get_department_by_id(db, department_id)
     if department:
@@ -27,7 +37,7 @@ async def get_department_by_id(department_id: str, db: AsyncSession = Depends(ge
     return None
 
 
-@router.delete("/{department_id}", dependencies=[Depends(RoleChecker(["admin"]))])
+@router.delete("/{department_id}")
 async def delete_department(department_id: str, db: AsyncSession = Depends(get_db)) -> None:
     department = await DepartmentService.get_department_by_id(db, department_id)
 
@@ -37,7 +47,7 @@ async def delete_department(department_id: str, db: AsyncSession = Depends(get_d
     await DepartmentService.delete_department(db, department_id=department_id)
 
 
-@router.post("", dependencies=[Depends(RoleChecker(["admin"]))], response_model=DepartmentSchema)
+@router.post("", response_model=DepartmentSchema)
 async def create_department(
     payload: DepartmentCreatePayload, db: AsyncSession = Depends(get_db)
 ) -> DepartmentSchema | None:
@@ -48,7 +58,7 @@ async def create_department(
     return DepartmentSchema.model_validate(created_department)
 
 
-@router.put("/{department_id}", dependencies=[Depends(RoleChecker(["admin"]))])
+@router.put("/{department_id}")
 async def update_department(
     department_id: str, payload: DepartmentCreatePayload, db: AsyncSession = Depends(get_db)
 ) -> None:
@@ -65,7 +75,6 @@ async def update_department(
 
 @router.get(
     "/{department_id}/users",
-    dependencies=[Depends(RoleChecker(["admin"]))],
     response_model=PaginationResponse,
 )
 async def get_department_users_paginated(
@@ -83,7 +92,7 @@ async def get_department_users_paginated(
     return users
 
 
-@router.post("/{department_id}/users/{user_id}/assign", dependencies=[Depends(RoleChecker(["admin"]))])
+@router.post("/{department_id}/users/{user_id}/assign")
 async def assign_user_to_department(
     department_id: str,
     user_id: str,
@@ -99,9 +108,7 @@ async def assign_user_to_department(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post(
-    "/{department_id}/users/{user_id}/unassign", dependencies=[Depends(RoleChecker(["admin"]))]
-)
+@router.post("/{department_id}/users/{user_id}/unassign")
 async def unassign_user_from_department(
     department_id: str,
     user_id: str,

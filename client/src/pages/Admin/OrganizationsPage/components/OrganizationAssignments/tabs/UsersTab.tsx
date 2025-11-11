@@ -8,6 +8,7 @@ import type { User } from "@/types/user";
 import { handleApiError } from "@/utils/errorHandler";
 import { getUsersColumns } from "../usersColumns";
 import type { Organization } from "@/types/organization";
+import { useAuth } from "@/context/AuthContext";
 
 interface UsersTabProps {
     selectedOrganization: Organization | null;
@@ -15,6 +16,7 @@ interface UsersTabProps {
 
 const UsersTab: React.FC<UsersTabProps> = ({ selectedOrganization }) => {
     const queryClient = useQueryClient();
+    const { user: loggedUser } = useAuth();
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [{ pageIndex, pageSize }, setPagination] = useState({
@@ -60,13 +62,13 @@ const UsersTab: React.FC<UsersTabProps> = ({ selectedOrganization }) => {
         } finally {
             refreshData();
         }
-    }
+    };
 
     const handlePaginationChange = (updaterOrValue: Updater<{ pageIndex: number; pageSize: number }>) => {
         setPagination((prev) => (typeof updaterOrValue === "function" ? updaterOrValue(prev) : updaterOrValue));
     };
 
-    const columns = getUsersColumns(handleAssignAction, handleUnassignAction);
+    const columns = getUsersColumns(handleAssignAction, handleUnassignAction, loggedUser?.is_superuser || false);
 
     return (
         <div className="flex-1 overflow-hidden flex flex-col">

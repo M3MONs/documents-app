@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from core.database import Base
 from models.category import category_department_visibility
 from models.folder import folder_department_permissions
+from models.user import user_departments
 
 class Department(Base):
     __tablename__ = "departments"
@@ -14,7 +15,7 @@ class Department(Base):
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     organization = relationship("Organization", back_populates="departments")
 
-    users = relationship("User", back_populates="department")
+    users = relationship("User", secondary=user_departments, back_populates="departments")
 
     visible_categories = relationship(
         "Category", secondary=category_department_visibility, back_populates="visible_to_departments"

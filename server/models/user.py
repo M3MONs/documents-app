@@ -12,6 +12,13 @@ user_organizations = Table(
     Column("organization_id", UUID, ForeignKey("organizations.id", ondelete="CASCADE"), primary_key=True),
 )
 
+user_departments = Table(
+    "user_departments",
+    Base.metadata,
+    Column("user_id", UUID, ForeignKey("users.id"), primary_key=True),
+    Column("department_id", UUID, ForeignKey("departments.id", ondelete="CASCADE"), primary_key=True),
+)
+
 
 class User(Base):
     __tablename__ = "users"
@@ -35,8 +42,7 @@ class User(Base):
 
     additional_organizations = relationship("Organization", secondary=user_organizations, lazy="selectin")
 
-    department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id"), nullable=True)
-    department = relationship("Department", back_populates="users")
+    departments = relationship("Department", secondary=user_departments, back_populates="users", lazy="selectin")
     organization_roles = relationship("UserOrganizationRole", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
     
     accessible_folders = relationship(

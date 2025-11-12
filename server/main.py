@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from core.database import engine, Base, AsyncSessionLocal
-from models import organization, department, role, user  # noqa: F401
+from models import organization, department, role, user, category, folder, document  # noqa: F401
 from routes import auth
 from routes.admin import admin_user, admin_organization, admin_department, admin_role, admin_user_organization_role
 from core.roles import StaticRole

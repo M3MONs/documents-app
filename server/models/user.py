@@ -2,6 +2,7 @@ from uuid import uuid4
 from sqlalchemy import UUID, Column, String, Boolean, ForeignKey, DateTime, Table, func
 from sqlalchemy.orm import relationship
 from core.database import Base
+from models.folder import folder_user_permissions
 
 
 user_organizations = Table(
@@ -37,3 +38,7 @@ class User(Base):
     department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id"), nullable=True)
     department = relationship("Department", back_populates="users")
     organization_roles = relationship("UserOrganizationRole", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    
+    accessible_folders = relationship(
+        "Folder", secondary=folder_user_permissions, back_populates="allowed_users"
+    )

@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, insert, delete, exists
 from models.department import Department
-from models.user import User
+from models.user import User, user_departments
 from models.organization import Organization
 from schemas.pagination import PaginationParams, PaginationResponse
 from schemas.admin import UserWithAssignment
@@ -29,14 +29,17 @@ class DepartmentRepository:
     @staticmethod
     async def assign_user_to_department(db: AsyncSession, user_id: str, department_id: str) -> None:
         await db.execute(
-            update(User).where(User.id == user_id).values(department_id=department_id)
+            insert(user_departments).values(user_id=user_id, department_id=department_id)
         )
         await db.commit()
 
     @staticmethod
-    async def unassign_user_from_department(db: AsyncSession, user_id: str) -> None:
+    async def unassign_user_from_department(db: AsyncSession, user_id: str, department_id: str) -> None:
         await db.execute(
-            update(User).where(User.id == user_id).values(department_id=None)
+            delete(user_departments).where(
+                user_departments.c.user_id == user_id,
+                user_departments.c.department_id == department_id
+            )
         )
         await db.commit()
 
@@ -58,7 +61,12 @@ class DepartmentRepository:
             (User.primary_organization_id == department.organization_id) |
             (User.additional_organizations.any(Organization.id == department.organization_id))
         ).add_columns(
-            User.department_id == dept_uuid
+            exists(
+                select(1).select_from(user_departments).where(
+                    user_departments.c.user_id == User.id,
+                    user_departments.c.department_id == dept_uuid
+                )
+            ).label('is_assigned')
         )
 
         total_query = select(User).where(

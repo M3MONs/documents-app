@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import CreateEditOrganization from "./components/CreateEditOrganization";
 import type { Organization } from "@/types/organization";
 import OrganizationAssignments from "./components/OrganizationAssignments/OrganizationAssignments";
+import { useAuth } from "@/context/AuthContext";
 
 declare module "@tanstack/react-table" {
     interface ColumnMeta<TData extends RowData, TValue> {
@@ -20,6 +21,7 @@ declare module "@tanstack/react-table" {
 }
 
 const AdminOrganizationsPage = () => {
+    const { user } = useAuth();
     const queryClient = useQueryClient();
     const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
 
@@ -100,7 +102,7 @@ const AdminOrganizationsPage = () => {
         <div className="p-4">
             <TableLayout
                 data={data}
-                columns={columns(handleEditAction, handleDeleteAction, handleAssignmentsAction)}
+                columns={columns(handleEditAction, handleDeleteAction, handleAssignmentsAction, user?.is_superuser || false)}
                 isLoading={isLoading}
                 sorting={sorting}
                 columnFilters={columnFilters}

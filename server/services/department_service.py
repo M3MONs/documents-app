@@ -13,9 +13,11 @@ class DepartmentService:
     async def get_department_by_id(db: AsyncSession, department_id: str) -> Department | None:
         result = await BaseRepository.get_by_id(Department, db, department_id)
         return result
-    
+
     @staticmethod
-    async def get_paginated_departments(db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | None = None) -> PaginationResponse:
+    async def get_paginated_departments(
+        db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | None = None
+    ) -> PaginationResponse:
         return await BaseRepository.get_paginated(
             model=Department,
             db=db,
@@ -35,14 +37,13 @@ class DepartmentService:
         await BaseRepository.create(db, department)
         await BaseRepository.refresh(db, department, ["organization"])
         return department
-    
-    
+
     @staticmethod
     async def delete_department(db: AsyncSession, department_id: str) -> None:
         department = await BaseRepository.get_by_id(Department, db, department_id)
         if department:
             await BaseRepository.delete(model=Department, db=db, entity_id=str(department.id))
-            
+
     @staticmethod
     async def update_department(db: AsyncSession, department_id: str, payload) -> None:
         department = await BaseRepository.get_by_id(model=Department, db=db, entity_id=department_id)
@@ -51,7 +52,7 @@ class DepartmentService:
             setattr(department, field, value)
 
         await BaseRepository.update(db, department)
-        
+
     @staticmethod
     async def validate_department_creation(db: AsyncSession, name: str) -> bool:
         return await DepartmentRepository.get_by_name(db, name) is None
@@ -61,7 +62,9 @@ class DepartmentService:
         return await DepartmentRepository.validate_unique_name_on_update(db, department_id, new_name)
 
     @staticmethod
-    async def get_paginated_users_with_assignment(db: AsyncSession, department_id: str, pagination) -> PaginationResponse:
+    async def get_paginated_users_with_assignment(
+        db: AsyncSession, department_id: str, pagination
+    ) -> PaginationResponse:
         return await DepartmentRepository.get_paginated_users_with_assignment(db, department_id, pagination)
 
     @staticmethod
@@ -74,9 +77,8 @@ class DepartmentService:
         if not user:
             raise ValueError(f"User with id {user_id} not found")
 
-        is_assigned_to_org = (
-            str(user.primary_organization_id) == str(department.organization_id) or
-            any(str(org.id) == str(department.organization_id) for org in user.additional_organizations)
+        is_assigned_to_org = str(user.primary_organization_id) == str(department.organization_id) or any(
+            str(org.id) == str(department.organization_id) for org in user.additional_organizations
         )
         if not is_assigned_to_org:
             raise ValueError(f"User {user_id} is not assigned to organization {department.organization_id}")
@@ -85,12 +87,13 @@ class DepartmentService:
 
     @staticmethod
     async def unassign_user_from_department(db: AsyncSession, user_id: str, department_id: str) -> None:
-        user = await UserService.get_user_by_id(db, user_id)
-        if not user or str(user.department_id) != department_id:
+        is_assigned = await DepartmentRepository.is_user_assigned(db, user_id, department_id)
+
+        if not is_assigned:
             raise ValueError(f"User {user_id} is not assigned to department {department_id}")
 
-        await DepartmentRepository.unassign_user_from_department(db, user_id)
-        
+        await DepartmentRepository.unassign_user_from_department(db, user_id, department_id)
+
     @staticmethod
     async def is_department_name_unique_by_organization(db: AsyncSession, organization_id: str, name: str) -> bool:
         department = await DepartmentRepository.get_by_name_and_organization(db, name, organization_id)

@@ -1,4 +1,5 @@
 import apiClient from "@/services/apiClient";
+import type { CategoryCreatePayload } from "@/types/category";
 import type { DepartmentCreatePayload } from "@/types/department";
 import type { OrganizationCreatePayload } from "@/types/organization";
 import type { PaginationParams } from "@/types/pagination";
@@ -186,4 +187,32 @@ export default class AdminService {
     static removeRoleFromUserInOrganization = async (uorId: string) => {
         await apiClient.delete(`${URL}/user-organization-roles/${uorId}`);
     };
+
+    // Category Management
+
+    static getCategories = async (pagination: PaginationParams) => {
+        const params = { ...pagination };
+
+        handleFilterParams(params);
+
+        const response = await apiClient.get(`${URL}/categories`, {
+            params,
+        });
+
+        return response.data;
+    };
+
+    static createCategory = async (payload: CategoryCreatePayload) => {
+        const response = await apiClient.post(`${URL}/categories`, payload);
+        return response.data;
+    };
+
+    static deleteCategory = async (categoryId: string) => {
+        await apiClient.delete(`${URL}/categories/${categoryId}`);
+    }
+
+    static updateCategory = async (categoryId: string, payload: CategoryCreatePayload) => {
+        const response = await apiClient.put(`${URL}/categories/${categoryId}`, payload);
+        return response.data;
+    }
 }

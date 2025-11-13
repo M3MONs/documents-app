@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { StaticRoles } from "@/constants/roles";
 import { useAuth } from "@/context/AuthContext";
-import { Building2, Group, User, Crown } from "lucide-react";
+import { Building2, Group, User, Crown, LayoutList } from "lucide-react";
 import { NavLink } from "react-router";
 
 const ADMIN_PAGES = [
@@ -15,6 +15,7 @@ const ADMIN_PAGES = [
     { name: "Organizations", path: "/admin/organizations", icon: Building2, role: StaticRoles.USER_MANAGER },
     { name: "Departments", path: "/admin/departments", icon: Group, role: StaticRoles.DEPARTMENT_MANAGER },
     { name: "Roles", path: "/admin/roles", icon: Crown, role: null },
+    { name: "Categories", path: "/admin/categories", icon: LayoutList, role: StaticRoles.CATEGORIES_MANAGER },
 ];
 
 export function NavAdmin() {
@@ -34,7 +35,7 @@ export function NavAdmin() {
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarMenu>
-                {ADMIN_PAGES.filter(page => hasAccess(page.role)).map((page) => (
+                {ADMIN_PAGES.filter((page) => hasAccess(page.role)).map((page) => (
                     <SidebarMenuItem key={page.path}>
                         <SidebarMenuButton asChild>
                             <NavLink to={page.path} className="flex items-center gap-2">

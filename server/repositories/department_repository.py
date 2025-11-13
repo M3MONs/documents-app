@@ -105,3 +105,17 @@ class DepartmentRepository:
             )
         )
         return query.scalars().first()
+    
+    @staticmethod
+    async def is_user_assigned(db: AsyncSession, user_id: str, department_id: str) -> bool | None:
+        from sqlalchemy import select, exists
+        from models.user import user_departments
+        stmt = select(exists(
+            select(1).select_from(user_departments).where(
+                user_departments.c.user_id == user_id,
+                user_departments.c.department_id == department_id
+            )
+        ))
+        result = await db.execute(stmt)
+        is_assigned = result.scalar()
+        return is_assigned

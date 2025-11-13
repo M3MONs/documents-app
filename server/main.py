@@ -4,7 +4,7 @@ from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from core.database import engine, Base, AsyncSessionLocal
 from models import organization, department, role, user, category, folder, document  # noqa: F401
-from routes import auth
+from routes import auth, category as category_router
 from routes.admin import admin_user, admin_organization, admin_department, admin_role, admin_user_organization_role, admin_category
 from core.roles import StaticRole
 from schemas.role import RoleCreatePayload
@@ -40,6 +40,7 @@ def get_status() -> dict[str, str]:
 api_router = APIRouter(prefix="/api")
 
 api_router.include_router(auth.router)
+api_router.include_router(category_router.router)
 
 api_router.include_router(admin_user.router)
 api_router.include_router(admin_organization.router)

@@ -3,6 +3,7 @@ import { setAuthToken } from "../services/tokenManager";
 import AuthService from "@/services/authService";
 import type { User } from "@/types/user";
 import type { Organization } from "@/types/organization";
+import { getFromLocalStorage, removeFromLocalStorage, saveToLocalStorage } from "@/utils/localStorage";
 
 interface AuthContextType {
     token: string | null;
@@ -32,6 +33,10 @@ export const AuthProvider = ({ children }: { children: any }) => {
 
     const handleSetSelectedOrganization = (newOrganization: Organization | null) => {
         setSelectedOrganization(newOrganization);
+
+        // TODO: Validate organization belongs to user
+        if (newOrganization) saveToLocalStorage("selectedOrganization", JSON.stringify(newOrganization));
+        else removeFromLocalStorage("selectedOrganization");
     };
 
     useEffect(() => {
@@ -52,6 +57,9 @@ export const AuthProvider = ({ children }: { children: any }) => {
                 setIsLoading(false);
             }
         };
+
+        var storedOrganization = getFromLocalStorage("selectedOrganization");
+        if (storedOrganization) setSelectedOrganization(JSON.parse(storedOrganization));
 
         refreshAuthToken();
     }, []);

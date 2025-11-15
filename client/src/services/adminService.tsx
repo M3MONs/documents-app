@@ -136,7 +136,6 @@ export default class AdminService {
         return response.data;
     };
 
-
     static createDepartment = async (payload: DepartmentCreatePayload) => {
         const response = await apiClient.post(`${URL}/departments`, payload);
         return response.data;
@@ -225,7 +224,7 @@ export default class AdminService {
         });
 
         return response.data;
-    }
+    };
 
     static createCategory = async (payload: CategoryCreatePayload) => {
         const response = await apiClient.post(`${URL}/categories`, payload);
@@ -239,5 +238,25 @@ export default class AdminService {
     static updateCategory = async (categoryId: string, payload: CategoryCreatePayload) => {
         const response = await apiClient.put(`${URL}/categories/${categoryId}`, payload);
         return response.data;
+    };
+
+    static getCategoryDepartments = async (categoryId: string, pagination?: PaginationParams) => {
+        const params = pagination ? { ...pagination } : {};
+
+        handleFilterParams(params);
+
+        const response = await apiClient.get(`${URL}/categories/${categoryId}/departments`, {
+            params,
+        });
+        
+        return response.data;
+    };
+
+    static assignDepartmentToCategory = async (categoryId: string, departmentId: string) => {
+        await apiClient.post(`${URL}/categories/${categoryId}/departments/${departmentId}/assign`);
+    };
+
+    static unassignDepartmentFromCategory = async (categoryId: string, departmentId: string) => {
+        await apiClient.post(`${URL}/categories/${categoryId}/departments/${departmentId}/unassign`);
     };
 }

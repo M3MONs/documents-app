@@ -89,7 +89,6 @@ const CreateEditCategory = ({ isOpen, onClose, onConfirm, category }: CreateEdit
             <DialogContent aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>{category ? "Edit Category" : "Create Category"}</DialogTitle>
-                    dupa
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full max-w-md">

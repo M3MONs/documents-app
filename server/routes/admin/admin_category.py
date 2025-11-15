@@ -97,3 +97,47 @@ async def update_department(
         raise HTTPException(status_code=400, detail="Category name must be unique")
 
     await CategoryService.update_category(db, category_id=category_id, payload=payload)
+
+
+@router.get("/{category_id}/departments", response_model=PaginationResponse)
+async def get_category_departments(
+    category_id: str, 
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(),
+) -> PaginationResponse:
+    category = await CategoryService.get_category_by_id(db, category_id)
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(category.organization_id))
+
+    departments = await CategoryService.get_paginated_departments_with_assignment(db, category_id, pagination)
+    return departments
+
+
+@router.post("/{category_id}/departments/{department_id}/assign")
+async def assign_department_to_category(
+    category_id: str, department_id: str, db: AsyncSession = Depends(get_db)
+) -> None:
+    category = await CategoryService.get_category_by_id(db, category_id)
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(category.organization_id))
+
+    await CategoryService.assign_department_to_category(db, category_id, department_id)
+ 
+
+
+@router.post("/{category_id}/departments/{department_id}/unassign")
+async def unassign_department_from_category(
+    category_id: str, department_id: str, db: AsyncSession = Depends(get_db)
+) -> None:
+    category = await CategoryService.get_category_by_id(db, category_id)
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(category.organization_id))
+
+    await CategoryService.unassign_department_from_category(db, category_id, department_id)
+

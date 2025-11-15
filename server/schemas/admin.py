@@ -1,6 +1,7 @@
 import uuid
 from pydantic import BaseModel
 from schemas.organization import Organization
+from schemas.department import Department
 
 
 class UserAdmin(BaseModel):
@@ -20,3 +21,7 @@ class UserAdmin(BaseModel):
 class UserWithAssignment(UserAdmin):
     is_assigned: bool | None = None
     is_primary: bool | None = None
+
+
+class DepartmentWithAssignment(Department):
+    is_assigned: bool | None = None

@@ -4,6 +4,7 @@ export interface Department {
     id: string;
     name: string;
     organization: Organization;
+    is_assigned?: boolean;
 }
 
 export interface DepartmentCreatePayload {

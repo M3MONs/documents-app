@@ -32,9 +32,13 @@ async def get_departments_paginated(
 @router.get("/{department_id}", response_model=DepartmentSchema)
 async def get_department_by_id(department_id: str, db: AsyncSession = Depends(get_db)) -> DepartmentSchema | None:
     department = await DepartmentService.get_department_by_id(db, department_id)
-    if department:
-        return DepartmentSchema.model_validate(department)
-    return None
+
+    if not department:
+        raise HTTPException(status_code=404, detail="Department not found")
+
+    RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value], org_param=str(department.organization_id))
+
+    return DepartmentSchema.model_validate(department)
 
 
 @router.delete("/{department_id}")
@@ -44,10 +48,18 @@ async def delete_department(department_id: str, db: AsyncSession = Depends(get_d
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
 
+    RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value], org_param=str(department.organization_id))
+
     await DepartmentService.delete_department(db, department_id=department_id)
 
 
-@router.post("", response_model=DepartmentSchema)
+@router.post(
+    "",
+    response_model=DepartmentSchema,
+    dependencies=[
+        Depends(RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value], org_param="payload.organization_id"))
+    ],
+)
 async def create_department(
     payload: DepartmentCreatePayload, db: AsyncSession = Depends(get_db)
 ) -> DepartmentSchema | None:
@@ -66,6 +78,8 @@ async def update_department(
 
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
+    
+    RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value], org_param=str(department.organization_id))
 
     if not DepartmentService.validate_department_update(db, department_id, payload.name):
         raise HTTPException(status_code=400, detail="Department name must be unique")
@@ -86,6 +100,8 @@ async def get_department_users_paginated(
 
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
+
+    RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value], org_param=str(department.organization_id))
 
     users = await DepartmentService.get_paginated_users_with_assignment(db, department_id, pagination)
 

@@ -215,6 +215,18 @@ export default class AdminService {
         return response.data;
     };
 
+    static getCategoryAvailableOrganizations = async (pagination: PaginationParams) => {
+        const params = { ...pagination };
+
+        handleFilterParams(params);
+
+        const response = await apiClient.get(`${URL}/categories/organizations`, {
+            params,
+        });
+
+        return response.data;
+    }
+
     static createCategory = async (payload: CategoryCreatePayload) => {
         const response = await apiClient.post(`${URL}/categories`, payload);
         return response.data;

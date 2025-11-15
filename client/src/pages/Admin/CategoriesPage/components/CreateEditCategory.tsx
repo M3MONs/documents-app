@@ -54,7 +54,7 @@ const CreateEditCategory = ({ isOpen, onClose, onConfirm, category }: CreateEdit
     useEffect(() => {
         const fetchOrganizations = async () => {
             try {
-                const data = await AdminService.getOrganizations({ page: 1, pageSize: 100 });
+                const data = await AdminService.getCategoryAvailableOrganizations({ page: 1, pageSize: 100 });
                 setOrganizations(data.items);
             } catch (err: any) {
                 handleApiError(err);

@@ -6,6 +6,8 @@ from core.database import get_db
 from schemas.category import CategoryCreatePayload
 from schemas.pagination import PaginationParams
 from schemas.pagination import PaginationResponse
+from models.user import User
+from services.organization_service import OrganizationService
 from services.category_service import CategoryService
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +29,26 @@ async def get_categories_paginated(
     )
     categories = await CategoryService.get_paginated_categories(db, pagination, organization_ids=organization_ids)
     return categories
+
+
+@router.get(
+    "/organizations",
+    dependencies=[Depends(RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value]))],
+    response_model=PaginationResponse,
+)
+async def get_organizations_paginated(
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(),
+    current_user: User = Depends(get_current_user),
+) -> PaginationResponse:
+    organization_ids = await RoleChecker.get_user_organization_ids(
+        db, current_user, [StaticRole.CATEGORIES_MANAGER.name_value]
+    )
+    organizations = await OrganizationService.get_paginated_organizations(
+        db, pagination, organization_ids=organization_ids
+    )
+
+    return organizations
 
 
 @router.post(

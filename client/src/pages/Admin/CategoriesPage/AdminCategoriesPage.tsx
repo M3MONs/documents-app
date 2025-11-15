@@ -86,7 +86,7 @@ const AdminCategoriesPage = () => {
                 setColumnFilters={setColumnFilters}
                 setPagination={handlePaginationChange}
                 isAddButtonVisible={true}
-                onAddButtonClick={() => setIsCreateEditDialogOpen(true)}
+                onAddButtonClick={() => {setSelectedCategory(null);setIsCreateEditDialogOpen(true)}}
             />
 
             <DeactivateDialog

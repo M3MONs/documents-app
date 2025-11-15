@@ -1,4 +1,7 @@
+from pathlib import Path
+import shutil
 from typing import Sequence
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from repositories.category_repository import CategoryRepository
@@ -6,6 +9,9 @@ from schemas.category import Category as CategorySchema, CategoryCreatePayload
 from models.category import Category
 from repositories.base_repository import BaseRepository
 from schemas.pagination import PaginationParams, PaginationResponse
+from core.config import settings
+
+CATEGORY_MEDIA_ROOT = Path(settings.MEDIA_ROOT) / "categories"
 
 
 class CategoryService:
@@ -18,8 +24,19 @@ class CategoryService:
 
     @staticmethod
     async def create_category(db: AsyncSession, payload: CategoryCreatePayload) -> CategorySchema:
-        category = Category(**payload.dict())
-        await BaseRepository.create(db, category)
+        category = Category(**payload.model_dump())
+        await BaseRepository.create_flush(db, category)
+
+        try:
+            CategoryService._create_category_dir(str(category.id))
+        except FileExistsError:
+            await db.rollback()
+            raise HTTPException(status_code=400, detail="Category directory already exists.")
+        except Exception as e:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to create category: {str(e)}")
+
+        await db.commit()
         return CategorySchema.model_validate(category)
 
     @staticmethod
@@ -50,8 +67,19 @@ class CategoryService:
     @staticmethod
     async def delete_category(db: AsyncSession, category_id: str) -> None:
         category = await BaseRepository.get_by_id(Category, db, category_id)
-        if category:
-            await BaseRepository.delete(model=Category, db=db, entity_id=str(category.id))
+        
+        if category is None:
+            raise HTTPException(status_code=404, detail="Category not found.")
+
+        await BaseRepository.delete(Category, db, category_id)
+
+        try:
+            CategoryService._delete_category_dir(str(category.id))
+        except FileNotFoundError:
+            pass  # If the directory does not exist, we can ignore this error
+        except Exception as e:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to delete category directory: {str(e)}")
 
     @staticmethod
     async def validate_unique_name_on_update(db: AsyncSession, category_id: str, new_name: str) -> bool:
@@ -65,3 +93,17 @@ class CategoryService:
             setattr(category, field, value)
 
         await BaseRepository.update(db, category)
+
+    @staticmethod
+    def _create_category_dir(category_id: str) -> None:
+        CATEGORY_MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+        (CATEGORY_MEDIA_ROOT / str(category_id)).mkdir(exist_ok=False)
+
+    @staticmethod
+    def _delete_category_dir(category_id: str) -> None:
+        category_path = CATEGORY_MEDIA_ROOT / str(category_id)
+
+        if category_path.exists() and category_path.is_dir():
+            shutil.rmtree(category_path)
+        else:
+            raise FileNotFoundError(f"Category directory {category_path} does not exist.")

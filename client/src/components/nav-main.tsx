@@ -8,6 +8,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import CategoryService from "@/services/categoryService";
 import { handleApiError } from "@/utils/errorHandler";
+import { capitalize } from "@/utils/helpers";
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 
@@ -36,7 +37,7 @@ export function NavMain() {
                 {categories.map((category) => (
                     <SidebarMenuItem key={category.id}>
                         <SidebarMenuButton asChild>
-                            <NavLink to={`/categories/${category.id}`}>{category.name}</NavLink>
+                            <NavLink to={`/categories/${category.id}`}>{capitalize(category.name)}</NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 ))}

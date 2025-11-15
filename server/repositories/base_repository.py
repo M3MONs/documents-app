@@ -92,6 +92,17 @@ class BaseRepository:
         except Exception as e:
             await db.rollback()
             raise e
+        
+    @staticmethod
+    async def create_flush(db: AsyncSession, entity: M) -> M:
+        try:
+            db.add(entity)
+            await db.flush()
+            await db.refresh(entity)
+            return entity
+        except Exception as e:
+            await db.rollback()
+            raise e
 
     @staticmethod
     async def update(db: AsyncSession, entity: M) -> M:

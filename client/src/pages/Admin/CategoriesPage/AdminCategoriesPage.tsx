@@ -9,6 +9,7 @@ import type { ColumnFiltersState, SortingState, Updater } from "@tanstack/react-
 import { useState } from "react";
 import { columns } from "./columns";
 import CreateEditCategory from "./components/CreateEditCategory";
+import CategoryAssignments from "./components/CategoryAssignments/CategoryAssignments";
 
 const AdminCategoriesPage = () => {
     const queryClient = useQueryClient();
@@ -47,6 +48,7 @@ const AdminCategoriesPage = () => {
 
     const handleAssignmentsAction = (category: any) => {
         setSelectedCategory(category);
+        setIsCategoryAssignmentsOpen(true);
     };
 
     const handleEditAction = (category: any) => {
@@ -107,6 +109,12 @@ const AdminCategoriesPage = () => {
                     refreshData();
                 }}
                 category={selectedCategory || undefined}
+            />
+
+            <CategoryAssignments
+                isOpen={isCategoryAssignmentsOpen}
+                selectedCategory={selectedCategory}
+                onClose={() => { setIsCategoryAssignmentsOpen(false); setSelectedCategory(null); }}
             />
         </div>
     );

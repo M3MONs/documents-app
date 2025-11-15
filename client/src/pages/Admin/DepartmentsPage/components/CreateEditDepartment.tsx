@@ -51,7 +51,7 @@ const CreateEditDepartment = ({ isOpen, onClose, onConfirm, department }: Create
     useEffect(() => {
         const fetchOrganizations = async () => {
             try {
-                const data = await AdminService.getOrganizations({ page: 1, pageSize: 100 });
+                const data = await AdminService.getDepartmentAvailableOrganizations({ page: 1, pageSize: 100 });
                 setOrganizations(data.items);
             } catch (err: any) {
                 handleApiError(err);

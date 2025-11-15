@@ -3,6 +3,8 @@ from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
 from core.roles import StaticRole
+from models.user import User
+from services.organization_service import OrganizationService
 from services.department_service import DepartmentService
 from core.security import RoleChecker, get_current_user
 from core.database import get_db
@@ -28,6 +30,19 @@ async def get_departments_paginated(
     departments = await DepartmentService.get_paginated_departments(db, pagination, organization_ids=organization_ids)
     return departments
 
+@router.get(
+    "/organizations", dependencies=[Depends(RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value]))], response_model=PaginationResponse
+)
+async def get_organizations_paginated(
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(),
+    current_user: User = Depends(get_current_user),
+) -> PaginationResponse:
+    organization_ids = await RoleChecker.get_user_organization_ids(db, current_user, [StaticRole.DEPARTMENT_MANAGER.name_value])
+    organizations = await OrganizationService.get_paginated_organizations(db, pagination, organization_ids=organization_ids)
+
+    return organizations
+
 
 @router.get("/{department_id}", response_model=DepartmentSchema)
 async def get_department_by_id(department_id: str, db: AsyncSession = Depends(get_db)) -> DepartmentSchema | None:
@@ -39,7 +54,6 @@ async def get_department_by_id(department_id: str, db: AsyncSession = Depends(ge
     RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value], org_param=str(department.organization_id))
 
     return DepartmentSchema.model_validate(department)
-
 
 @router.delete("/{department_id}")
 async def delete_department(department_id: str, db: AsyncSession = Depends(get_db)) -> None:
@@ -78,7 +92,7 @@ async def update_department(
 
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
-    
+
     RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value], org_param=str(department.organization_id))
 
     if not DepartmentService.validate_department_update(db, department_id, payload.name):

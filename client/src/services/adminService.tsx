@@ -124,6 +124,19 @@ export default class AdminService {
         return response.data;
     };
 
+    static getDepartmentAvailableOrganizations = async (pagination: PaginationParams) => {
+        const params = { ...pagination };
+
+        handleFilterParams(params);
+
+        const response = await apiClient.get(`${URL}/departments/organizations`, {
+            params,
+        });
+
+        return response.data;
+    };
+
+
     static createDepartment = async (payload: DepartmentCreatePayload) => {
         const response = await apiClient.post(`${URL}/departments`, payload);
         return response.data;
@@ -209,10 +222,10 @@ export default class AdminService {
 
     static deleteCategory = async (categoryId: string) => {
         await apiClient.delete(`${URL}/categories/${categoryId}`);
-    }
+    };
 
     static updateCategory = async (categoryId: string, payload: CategoryCreatePayload) => {
         const response = await apiClient.put(`${URL}/categories/${categoryId}`, payload);
         return response.data;
-    }
+    };
 }

@@ -18,7 +18,9 @@ class OrganizationService:
             await BaseRepository.delete(model=Organization, db=db, entity_id=str(organization.id))
 
     @staticmethod
-    async def get_paginated_organizations(db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | None = None) -> PaginationResponse:
+    async def get_paginated_organizations(
+        db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | None = None
+    ) -> PaginationResponse:
         return await BaseRepository.get_paginated(
             model=Organization,
             db=db,
@@ -57,3 +59,9 @@ class OrganizationService:
         organization = Organization(**payload.dict())
         await BaseRepository.create(db, organization)
         return organization
+
+    @staticmethod
+    async def user_has_access_to_organization(db: AsyncSession, user_id: str, organization_id: str) -> bool:
+        from repositories.user_repository import UserRepository
+
+        return await UserRepository.user_belongs_to_organization(db, user_id, organization_id)

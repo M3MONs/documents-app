@@ -226,6 +226,10 @@ export default class AdminService {
         return response.data;
     };
 
+    static syncCategory = async (categoryId: string) => {
+        await apiClient.post(`${URL}/categories/${categoryId}/synchronize`);
+    };
+
     static createCategory = async (payload: CategoryCreatePayload) => {
         const response = await apiClient.post(`${URL}/categories`, payload);
         return response.data;

@@ -9,6 +9,10 @@ class DepartmentCreatePayload(BaseModel):
     organization_id: str = Field(..., description="The ID of the organization the department belongs to")
 
 
+class DepartmentUpdatePayload(BaseModel):
+    name: str = Field(..., description="The new name for the department")
+
+
 class Department(BaseModel):
     id: uuid.UUID
     name: str

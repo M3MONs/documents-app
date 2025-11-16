@@ -8,7 +8,7 @@ from services.organization_service import OrganizationService
 from services.department_service import DepartmentService
 from core.security import RoleChecker, get_current_user
 from core.database import get_db
-from schemas.department import Department as DepartmentSchema, DepartmentCreatePayload
+from schemas.department import Department as DepartmentSchema, DepartmentCreatePayload, DepartmentUpdatePayload
 
 
 router = APIRouter(
@@ -86,7 +86,7 @@ async def create_department(
 
 @router.put("/{department_id}")
 async def update_department(
-    department_id: str, payload: DepartmentCreatePayload, db: AsyncSession = Depends(get_db)
+    department_id: str, payload: DepartmentUpdatePayload, db: AsyncSession = Depends(get_db)
 ) -> None:
     department = await DepartmentService.get_department_by_id(db, department_id)
 

@@ -16,7 +16,9 @@ import type { Category } from "@/types/category";
 export const columns = (
     onEdit?: (category: Category) => void,
     onDelete?: (category: Category) => void,
-    onAssignments?: (category: Category) => void
+    onAssignments?: (category: Category) => void,
+    onSynchronize?: (category: Category) => void,
+    isSuperuser?: boolean,
 ): ColumnDef<Category>[] => [
     {
         accessorKey: "name",
@@ -50,7 +52,7 @@ export const columns = (
         id: "actions",
         header: "Actions",
         cell: ({ row }) => {
-            const department = row.original;
+            const category = row.original;
             return (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -63,11 +65,17 @@ export const columns = (
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
-                        <DropdownMenuItem onClick={() => onEdit?.(department)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEdit?.(category)}>Edit</DropdownMenuItem>
 
-                        <DropdownMenuItem onClick={() => onAssignments?.(department)}>Assignments</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onAssignments?.(category)}>Assignments</DropdownMenuItem>
 
-                        <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(department)}>
+                        {isSuperuser && (
+                            <DropdownMenuItem onClick={() => onSynchronize?.(category)}>
+                                Synchronize
+                            </DropdownMenuItem>
+                        )}
+
+                        <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(category)}>
                             Delete
                         </DropdownMenuItem>
                     </DropdownMenuContent>

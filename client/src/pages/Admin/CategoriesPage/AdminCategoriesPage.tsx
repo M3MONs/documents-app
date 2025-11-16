@@ -10,8 +10,10 @@ import { useState } from "react";
 import { columns } from "./columns";
 import CreateEditCategory from "./components/CreateEditCategory";
 import CategoryAssignments from "./components/CategoryAssignments/CategoryAssignments";
+import { useAuth } from "@/context/AuthContext";
 
 const AdminCategoriesPage = () => {
+    const { user } = useAuth();
     const queryClient = useQueryClient();
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [isCreateEditDialogOpen, setIsCreateEditDialogOpen] = useState(false);
@@ -56,6 +58,15 @@ const AdminCategoriesPage = () => {
         setIsCreateEditDialogOpen(true);
     };
 
+    const handleSynchronizeAction = async (category: Category) => {
+        try {
+            await AdminService.syncCategory(category.id);
+            refreshData();
+        } catch (error) {
+            handleApiError(error);
+        }
+    };
+
     const { data, isLoading, error } = usePaginationQuery(
         ["admin/categories"],
         pageIndex,
@@ -73,12 +84,17 @@ const AdminCategoriesPage = () => {
         setPagination((prev) => (typeof updaterOrValue === "function" ? updaterOrValue(prev) : updaterOrValue));
     };
 
-
     return (
         <div className="p-4">
             <TableLayout
                 data={data}
-                columns={columns(handleEditAction, handleDeleteAction, handleAssignmentsAction)}
+                columns={columns(
+                    handleEditAction,
+                    handleDeleteAction,
+                    handleAssignmentsAction,
+                    handleSynchronizeAction,
+                    user?.is_superuser || false
+                )}
                 isLoading={isLoading}
                 sorting={sorting}
                 columnFilters={columnFilters}
@@ -88,7 +104,10 @@ const AdminCategoriesPage = () => {
                 setColumnFilters={setColumnFilters}
                 setPagination={handlePaginationChange}
                 isAddButtonVisible={true}
-                onAddButtonClick={() => {setSelectedCategory(null);setIsCreateEditDialogOpen(true)}}
+                onAddButtonClick={() => {
+                    setSelectedCategory(null);
+                    setIsCreateEditDialogOpen(true);
+                }}
             />
 
             <DeactivateDialog
@@ -114,7 +133,10 @@ const AdminCategoriesPage = () => {
             <CategoryAssignments
                 isOpen={isCategoryAssignmentsOpen}
                 selectedCategory={selectedCategory}
-                onClose={() => { setIsCategoryAssignmentsOpen(false); setSelectedCategory(null); }}
+                onClose={() => {
+                    setIsCategoryAssignmentsOpen(false);
+                    setSelectedCategory(null);
+                }}
             />
         </div>
     );

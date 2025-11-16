@@ -117,3 +117,19 @@ class UserRepository:
                 user.additional_organizations.remove(organization_to_remove)
 
         await db.commit()
+
+    @staticmethod
+    async def user_belongs_to_organization(db: AsyncSession, user_id: str, organization_id: str) -> bool:
+        user = await db.get(User, user_id)
+
+        if user is None:
+            return False
+
+        if str(user.primary_organization_id) == organization_id:
+            return True
+
+        for org in user.additional_organizations:
+            if str(org.id) == organization_id:
+                return True
+
+        return False

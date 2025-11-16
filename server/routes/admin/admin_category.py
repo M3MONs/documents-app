@@ -7,6 +7,7 @@ from schemas.category import CategoryCreatePayload, CategoryUpdatePayload
 from schemas.pagination import PaginationParams
 from schemas.pagination import PaginationResponse
 from models.user import User
+from services.sync_service import SyncService
 from services.organization_service import OrganizationService
 from services.category_service import CategoryService
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -101,7 +102,7 @@ async def update_department(
 
 @router.get("/{category_id}/departments", response_model=PaginationResponse)
 async def get_category_departments(
-    category_id: str, 
+    category_id: str,
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(),
 ) -> PaginationResponse:
@@ -115,6 +116,21 @@ async def get_category_departments(
     return departments
 
 
+@router.post("/{category_id}/synchronize")
+async def synchronize_category(category_id: str, db: AsyncSession = Depends(get_db)) -> None:
+    category = await CategoryService.get_category_by_id(db, category_id)
+
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(category.organization_id))
+
+    try:
+        await SyncService.sync_category(db, category_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/{category_id}/departments/{department_id}/assign")
 async def assign_department_to_category(
     category_id: str, department_id: str, db: AsyncSession = Depends(get_db)
@@ -126,7 +142,6 @@ async def assign_department_to_category(
     RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(category.organization_id))
 
     await CategoryService.assign_department_to_category(db, category_id, department_id)
- 
 
 
 @router.post("/{category_id}/departments/{department_id}/unassign")
@@ -140,4 +155,3 @@ async def unassign_department_from_category(
     RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(category.organization_id))
 
     await CategoryService.unassign_department_from_category(db, category_id, department_id)
-

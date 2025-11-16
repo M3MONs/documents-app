@@ -3,8 +3,7 @@ from enum import Enum
 from core.database import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import LtreeType
-from sqlalchemy import Column, UUID, String, ForeignKey, Table, DateTime, func, event, select
-from sqlalchemy.orm import object_session
+from sqlalchemy import Column, UUID, String, ForeignKey, Table, DateTime, func, event
 
 folder_department_permissions = Table(
     "folder_department_permissions",
@@ -22,6 +21,7 @@ folder_user_permissions = Table(
     Column("permission_level", String(50), default="read", nullable=False),
 )
 
+
 class AccessMode(str, Enum):
     PRIVATE = "private"
     INHERITED = "inherited"
@@ -34,7 +34,7 @@ class Folder(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid4)
     name = Column(String(100), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    path = Column(LtreeType, nullable=False, index=True)
+    path = Column(LtreeType, nullable=True, index=True)
 
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="CASCADE"), nullable=True, index=True)
     category = relationship("Category", back_populates="folders")
@@ -53,16 +53,13 @@ class Folder(Base):
 
 @event.listens_for(Folder, "before_insert")
 @event.listens_for(Folder, "before_update")
-def generate_path(mapper, connection, target):
-    if target.parent_id:
-        session = object_session(target)
-        if session is not None:
-            parent = session.query(Folder).filter(Folder.id == target.parent_id).first()
-            if parent:
-                target.path = f"{parent.path}.{target.id}"
-        else:
-            parent_row = connection.execute(select(Folder.path).where(Folder.id == target.parent_id)).fetchone()
-            if parent_row and parent_row[0] is not None:
-                target.path = f"{parent_row[0]}.{target.id}"
-    else:
-        target.path = str(target.id)
+def generate_path(mapper, connection, target) -> None:
+    from sqlalchemy_utils import Ltree
+
+    if target.path is None:
+        target.path = None
+    elif isinstance(target.path, str):
+        try:
+            target.path = Ltree(target.path)
+        except ValueError:
+            target.path = None

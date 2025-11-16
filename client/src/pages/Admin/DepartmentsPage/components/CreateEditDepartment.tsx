@@ -106,6 +106,7 @@ const CreateEditDepartment = ({ isOpen, onClose, onConfirm, department }: Create
                         <FormField
                             control={form.control}
                             name="organization_id"
+                            disabled={!!department}
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Organization</FormLabel>

@@ -109,6 +109,7 @@ const CreateEditCategory = ({ isOpen, onClose, onConfirm, category }: CreateEdit
                         <FormField
                             control={form.control}
                             name="organization_id"
+                            disabled={!!category}
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Organization</FormLabel>

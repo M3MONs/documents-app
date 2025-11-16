@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException
 from core.roles import StaticRole
 from core.security import RoleChecker, get_current_user
 from core.database import get_db
-from schemas.category import CategoryCreatePayload
+from schemas.category import CategoryCreatePayload, CategoryUpdatePayload
 from schemas.pagination import PaginationParams
 from schemas.pagination import PaginationResponse
 from models.user import User
@@ -86,7 +86,7 @@ async def delete_category(category_id: str, db: AsyncSession = Depends(get_db)) 
     ],
 )
 async def update_department(
-    category_id: str, payload: CategoryCreatePayload, db: AsyncSession = Depends(get_db)
+    category_id: str, payload: CategoryUpdatePayload, db: AsyncSession = Depends(get_db)
 ) -> None:
     category = await CategoryService.get_category_by_id(db, category_id)
 

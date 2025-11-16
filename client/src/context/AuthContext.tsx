@@ -4,6 +4,7 @@ import AuthService from "@/services/authService";
 import type { User } from "@/types/user";
 import type { Organization } from "@/types/organization";
 import { getFromLocalStorage, removeFromLocalStorage, saveToLocalStorage } from "@/utils/localStorage";
+import OrganizationService from "@/services/organizationService";
 
 interface AuthContextType {
     token: string | null;
@@ -25,6 +26,7 @@ export const AuthProvider = ({ children }: { children: any }) => {
 
     const handleSetToken = (newToken: string | null) => {
         setToken(newToken);
+        setAuthToken(newToken);
     };
 
     const handleSetUser = (newUser: User | null) => {
@@ -34,7 +36,6 @@ export const AuthProvider = ({ children }: { children: any }) => {
     const handleSetSelectedOrganization = (newOrganization: Organization | null) => {
         setSelectedOrganization(newOrganization);
 
-        // TODO: Validate organization belongs to user
         if (newOrganization) saveToLocalStorage("selectedOrganization", JSON.stringify(newOrganization));
         else removeFromLocalStorage("selectedOrganization");
     };
@@ -49,24 +50,33 @@ export const AuthProvider = ({ children }: { children: any }) => {
                 }
 
                 setUser(data.user);
-                setToken(data.access_token);
+                handleSetToken(data.access_token);
             } catch (err: any) {
                 console.error("Failed to refresh auth token on app load:", err);
-                setToken(null);
+                handleSetToken(null);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        var storedOrganization = getFromLocalStorage("selectedOrganization");
-        if (storedOrganization) setSelectedOrganization(JSON.parse(storedOrganization));
+        const validateOrganization = async (storedOrganization: string) => {
+            try {
+                await OrganizationService.validateOrganizationAccess(JSON.parse(storedOrganization).id);
+                setSelectedOrganization(JSON.parse(storedOrganization));
+            } catch (err: any) {
+                console.error("Failed to validate stored organization:", err);
+                removeFromLocalStorage("selectedOrganization");
+            }
+        };
 
-        refreshAuthToken();
+        const init = async () => {
+            await refreshAuthToken();
+            const storedOrganization = getFromLocalStorage("selectedOrganization");
+            if (storedOrganization) await validateOrganization(storedOrganization);
+        };
+
+        init();
     }, []);
-
-    useEffect(() => {
-        setAuthToken(token);
-    }, [token]);
 
     const value = {
         token,

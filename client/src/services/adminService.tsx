@@ -240,8 +240,8 @@ export default class AdminService {
         return response.data;
     };
 
-    static getCategoryDepartments = async (categoryId: string, pagination?: PaginationParams) => {
-        const params = pagination ? { ...pagination } : {};
+    static getCategoryDepartments = async (categoryId: string, pagination: PaginationParams) => {
+        const params = { ...pagination };
 
         handleFilterParams(params);
 

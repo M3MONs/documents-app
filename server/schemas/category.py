@@ -1,7 +1,11 @@
+from typing import List
 import uuid
 from pydantic import BaseModel, Field
 
 from schemas.organization import Organization
+from schemas.document import DocumentItem
+from schemas.folder import FolderItem
+from schemas.pagination import PaginationInfo
 
 
 class CategoryCreatePayload(BaseModel):
@@ -20,6 +24,15 @@ class Category(BaseModel):
     name: str
     description: str
     organization: Organization
+
+    class Config:
+        from_attributes = True
+
+
+class CategoryContentResponse(BaseModel):
+    folders: List[FolderItem]
+    documents: List[DocumentItem]
+    pagination: PaginationInfo
 
     class Config:
         from_attributes = True

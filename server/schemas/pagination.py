@@ -26,3 +26,10 @@ class PaginationResponse(BaseModel):
     
     class Config:
         from_attributes = True
+        
+
+class PaginationInfo(BaseModel):
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

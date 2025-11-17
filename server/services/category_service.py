@@ -5,12 +5,14 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from repositories.category_repository import CategoryRepository
-from schemas.category import Category as CategorySchema, CategoryCreatePayload
+from schemas.category import Category as CategorySchema, CategoryContentResponse, CategoryCreatePayload
 from models.category import Category
 from models.department import Department
 from repositories.base_repository import BaseRepository
-from schemas.pagination import PaginationParams, PaginationResponse
+from schemas.pagination import PaginationInfo, PaginationParams, PaginationResponse
 from core.config import settings
+from schemas.document import DocumentItem
+from schemas.folder import FolderItem
 from services.department_service import DepartmentService
 
 CATEGORY_MEDIA_ROOT = Path(settings.MEDIA_ROOT) / "categories"
@@ -70,7 +72,7 @@ class CategoryService:
     @staticmethod
     async def delete_category(db: AsyncSession, category_id: str) -> None:
         category = await BaseRepository.get_by_id(Category, db, category_id)
-        
+
         if category is None:
             raise HTTPException(status_code=404, detail="Category not found.")
 
@@ -146,3 +148,41 @@ class CategoryService:
         db: AsyncSession, category_id: str, pagination: PaginationParams
     ) -> PaginationResponse:
         return await CategoryRepository.get_paginated_departments_with_assignment(db, category_id, pagination)
+
+    @staticmethod
+    async def get_category_content_in_folder(
+        db: AsyncSession, category_id: str, folder_id: str | None, pagination: PaginationParams, user_id: str
+    ) -> CategoryContentResponse:
+        from repositories.folder_repository import FolderRepository
+        from repositories.document_repository import DocumentRepository
+
+        folder_count = await FolderRepository.count_folders_by_parent(db, category_id, folder_id)
+
+        skip = (pagination.page - 1) * pagination.page_size
+
+        folders = await FolderRepository.get_folders_by_parent(
+            db, category_id, folder_id, skip=skip, limit=pagination.page_size
+        )
+
+        folders_returned = len(folders)
+        remaining_slots = pagination.page_size - folders_returned
+
+        documents = []
+        if remaining_slots > 0:
+            documents = await DocumentRepository.get_documents_by_folder(
+                db, category_id, folder_id, skip=0, limit=remaining_slots
+            )
+
+        total_items = folder_count + await DocumentRepository.count_documents_by_folder(db, category_id, folder_id)
+        total_pages = (total_items + pagination.page_size - 1) // pagination.page_size
+
+        return CategoryContentResponse(
+            folders=[FolderItem(id=str(f.id), name=str(f.name)) for f in folders],
+            documents=[DocumentItem(id=str(d.id), name=str(d.name), mime_type=str(d.mime_type)) for d in documents],
+            pagination=PaginationInfo(
+                page=pagination.page,
+                page_size=pagination.page_size,
+                total=total_items,
+                total_pages=total_pages,
+            ),
+        )

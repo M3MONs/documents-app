@@ -11,6 +11,7 @@ import { columns } from "./columns";
 import CreateEditCategory from "./components/CreateEditCategory";
 import CategoryAssignments from "./components/CategoryAssignments/CategoryAssignments";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 const AdminCategoriesPage = () => {
     const { user } = useAuth();
@@ -62,6 +63,7 @@ const AdminCategoriesPage = () => {
         try {
             await AdminService.syncCategory(category.id);
             refreshData();
+            toast.success(`Synchronization for category "${category.name}" has been initiated.`);
         } catch (error) {
             handleApiError(error);
         }

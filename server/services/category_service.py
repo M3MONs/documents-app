@@ -39,6 +39,7 @@ class CategoryService:
             raise HTTPException(status_code=500, detail=f"Failed to create category: {str(e)}")
 
         await db.commit()
+        await BaseRepository.refresh(db, category, ["organization"])
         return CategorySchema.model_validate(category)
 
     @staticmethod

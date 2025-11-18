@@ -156,12 +156,22 @@ class CategoryService:
         from repositories.folder_repository import FolderRepository
         from repositories.document_repository import DocumentRepository
 
-        folder_count = await FolderRepository.count_folders_by_parent(db, category_id, folder_id)
+        folder_count = await FolderRepository.count_folders_by_parent(
+            db, category_id, folder_id, filter_field=pagination.filter_field, filter_value=pagination.filter_value
+        )
 
         skip = (pagination.page - 1) * pagination.page_size
 
         folders = await FolderRepository.get_folders_by_parent(
-            db, category_id, folder_id, skip=skip, limit=pagination.page_size
+            db,
+            category_id,
+            folder_id,
+            skip=skip,
+            limit=pagination.page_size,
+            filter_field=pagination.filter_field,
+            filter_value=pagination.filter_value,
+            ordering=pagination.ordering,
+            ordering_desc=pagination.ordering_desc,
         )
 
         folders_returned = len(folders)
@@ -170,10 +180,22 @@ class CategoryService:
         documents = []
         if remaining_slots > 0:
             documents = await DocumentRepository.get_documents_by_folder(
-                db, category_id, folder_id, skip=0, limit=remaining_slots
+                db,
+                category_id,
+                folder_id,
+                skip=0,
+                limit=remaining_slots,
+                filter_field=pagination.filter_field,
+                filter_value=pagination.filter_value,
+                ordering=pagination.ordering,
+                ordering_desc=pagination.ordering_desc,
             )
 
-        total_items = folder_count + await DocumentRepository.count_documents_by_folder(db, category_id, folder_id)
+        document_count = await DocumentRepository.count_documents_by_folder(
+            db, category_id, folder_id, filter_field=pagination.filter_field, filter_value=pagination.filter_value
+        )
+
+        total_items = folder_count + document_count
         total_pages = (total_items + pagination.page_size - 1) // pagination.page_size
 
         return CategoryContentResponse(

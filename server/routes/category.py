@@ -28,5 +28,5 @@ async def get_category_content_in_folder(
     pagination: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> CategoryContentResponse:
+) -> CategoryContentResponse | None:
     return await CategoryService.get_category_content_in_folder(db, category_id, folder_id, pagination, str(current_user.id))

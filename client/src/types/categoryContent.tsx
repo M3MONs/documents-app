@@ -13,3 +13,15 @@ export interface CategoryContentResponse {
     documents: Document[];
     pagination: PaginationInfo;
 }
+
+export interface BreadcrumbItemData {
+    id: string | null;
+    name: string;
+}
+
+export interface ContentItem {
+    id: string;
+    name: string;
+    type: "folder" | "document";
+    mime_type?: string;
+}

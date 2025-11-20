@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useCategoryContent } from "@/hooks/useCategoryContent";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { ContentItem } from "@/types/categoryContent";
-import DocumentDialog from "./components/DocumentDialog";
+import DocumentDialog from "./components/Document/DocumentDialog";
 import CategoryHeader from "./components/CategoryHeader";
 import ContentList from "./components/ContentList";
 import ErrorAlert from "../../components/atoms/ErrorAlert";

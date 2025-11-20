@@ -41,12 +41,8 @@ const CategoryPage = () => {
         setPage(1);
     }, [debouncedSearchQuery, currentFolderId, setPage]);
 
-    if (!categoryId) {
-        return <SelectCategoryInfo />;
-    }
-
     const { data, isLoading, error } = useCategoryContent({
-        categoryId,
+        categoryId: categoryId || "",
         folderId: currentFolderId,
         searchQuery: debouncedSearchQuery.trim() || undefined,
         page,
@@ -118,6 +114,10 @@ const CategoryPage = () => {
             setSearchQuery("");
         }
     }, [folderHistory, setCurrentFolderId, setFolderHistory, setSearchQuery]);
+
+    if (!categoryId) {
+        return <SelectCategoryInfo />;
+    }
 
     return (
         <DashboardLayout>

@@ -1,3 +1,5 @@
+import os
+from core.config import settings
 from repositories.base_repository import BaseRepository
 from repositories.document_repository import DocumentRepository
 from models.document import Document
@@ -37,3 +39,11 @@ class DocumentService:
             setattr(document, field, value)
 
         await BaseRepository.update(db, document)
+
+    @staticmethod
+    def get_file_path(document: Document) -> str:
+        return os.path.join(settings.MEDIA_ROOT, "categories", str(document.category_id), str(document.file_path))
+
+    @staticmethod
+    def is_file_exists(file_path: str) -> bool:
+        return os.path.isfile(file_path)

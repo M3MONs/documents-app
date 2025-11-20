@@ -2,10 +2,18 @@ from contextlib import asynccontextmanager
 import logging
 from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from core.database import engine, Base, AsyncSessionLocal
 from models import organization, department, role, user, category, folder, document  # noqa: F401
-from routes import auth, category as category_router, organization as organization_router
-from routes.admin import admin_user, admin_organization, admin_department, admin_role, admin_user_organization_role, admin_category
+from routes import auth, category as category_router, organization as organization_router, document as document_router
+from routes.admin import (
+    admin_user,
+    admin_organization,
+    admin_department,
+    admin_role,
+    admin_user_organization_role,
+    admin_category,
+)
 from core.roles import StaticRole
 from schemas.role import RoleCreatePayload
 from services.role_service import RoleService
@@ -25,6 +33,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -42,6 +58,7 @@ api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
 api_router.include_router(category_router.router)
 api_router.include_router(organization_router.router)
+api_router.include_router(document_router.router)
 
 api_router.include_router(admin_user.router)
 api_router.include_router(admin_organization.router)

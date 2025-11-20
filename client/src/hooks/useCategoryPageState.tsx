@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 
 const useCategoryPageState = () => {
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-    const [folderHistory, setFolderHistory] = useState<BreadcrumbItemData[]>([{ id: null, name: "Category Root" }]);
+    const [folderHistory, setFolderHistory] = useState<BreadcrumbItemData[]>([{ id: null, name: "Root" }]);
     const [searchQuery, setSearchQuery] = useState("");
     const [isFocused, setIsFocused] = useState(false);
     const [selectedDocument, setSelectedDocument] = useState<ContentItem | null>(null);

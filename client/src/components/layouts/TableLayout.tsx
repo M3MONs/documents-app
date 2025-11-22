@@ -106,7 +106,7 @@ const TableLayout = ({
                 name:
                     typeof col.header === "string"
                         ? col.header
-                        : capitalize((col as any).accessorKey?.replace(/_/g, " ")),
+                        : capitalize((col as any).accessorKey?.replace(/_/g, " ").replace(/\./g, " ")),
             }));
     };
 

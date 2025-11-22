@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useMemo, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import SelectCategoryInfo from "@/components/atoms/SelectCategoryInfo";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -10,9 +10,11 @@ import CategoryHeader from "./components/CategoryHeader";
 import ContentList from "./components/ContentList";
 import ErrorAlert from "../../components/atoms/ErrorAlert";
 import useCategoryPageState from "@/hooks/useCategoryPageState";
+import FolderManageDialog from "./components/Manager/FolderManageDialog";
 
 const CategoryPage = () => {
     const { categoryId } = useParams<{ categoryId: string }>();
+    const [selectedFolder, setSelectedFolder] = useState<any | null>(null);
     const {
         currentFolderId,
         setCurrentFolderId,
@@ -115,6 +117,13 @@ const CategoryPage = () => {
         }
     }, [folderHistory, setCurrentFolderId, setFolderHistory, setSearchQuery]);
 
+    const handleManageFolder = useCallback(
+        (item: ContentItem) => {
+            setSelectedFolder(item);
+        },
+        [setSelectedFolder]
+    );
+
     if (!categoryId) {
         return <SelectCategoryInfo />;
     }
@@ -142,12 +151,15 @@ const CategoryPage = () => {
                     pagination={data?.pagination}
                     showBackButton={!!currentFolderId}
                     onItemClick={handleItemClick}
+                    onManageClick={handleManageFolder}
                     onBackClick={handleNavigateBack}
                     onPreviousPage={() => setPage((p) => Math.max(1, p - 1))}
                     onNextPage={() => setPage((p) => p + 1)}
                 />
 
                 <DocumentDialog selectedDocument={selectedDocument} setSelectedDocument={setSelectedDocument} />
+
+                <FolderManageDialog selectedFolder={selectedFolder} setSelectedFolder={setSelectedFolder} />
             </div>
         </DashboardLayout>
     );

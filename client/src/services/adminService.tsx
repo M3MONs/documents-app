@@ -252,7 +252,7 @@ export default class AdminService {
         const response = await apiClient.get(`${URL}/categories/${categoryId}/departments`, {
             params,
         });
-        
+
         return response.data;
     };
 
@@ -262,5 +262,27 @@ export default class AdminService {
 
     static unassignDepartmentFromCategory = async (categoryId: string, departmentId: string) => {
         await apiClient.post(`${URL}/categories/${categoryId}/departments/${departmentId}/unassign`);
+    };
+
+    // Folder Management
+
+    static getFolderDepartments = async (folderId: string, pagination: PaginationParams) => {
+        const params = { ...pagination };
+
+        handleFilterParams(params);
+
+        const response = await apiClient.get(`${URL}/folders/${folderId}/departments`, {
+            params,
+        });
+
+        return response.data;
+    };
+
+    static assignDepartmentToFolder = async (folderId: string, departmentId: string) => {
+        await apiClient.post(`${URL}/folders/${folderId}/departments/${departmentId}/assign`);
+    };
+
+    static unassignDepartmentFromFolder = async (folderId: string, departmentId: string) => {
+        await apiClient.post(`${URL}/folders/${folderId}/departments/${departmentId}/unassign`);
     };
 }

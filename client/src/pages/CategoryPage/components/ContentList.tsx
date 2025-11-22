@@ -1,10 +1,12 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import ContentItem from "./ContentItem";
 import ContentEmpty from "./ContentEmpty";
 import ContentLoading from "./ContentLoading";
 import PaginationControls from "./PaginationControls";
 import type { ContentItem as ContentItemType } from "@/types/categoryContent";
+import { useAuth } from "@/context/AuthContext";
+import { StaticRoles } from "@/constants/roles";
 
 interface ContentListProps {
     items: ContentItemType[];
@@ -18,6 +20,7 @@ interface ContentListProps {
     };
     showBackButton: boolean;
     onItemClick: (item: ContentItemType) => void;
+    onManageClick: (item: ContentItemType) => void;
     onBackClick: () => void;
     onPreviousPage: () => void;
     onNextPage: () => void;
@@ -32,10 +35,18 @@ const ContentList = memo(
         pagination,
         showBackButton,
         onItemClick,
+        onManageClick,
         onBackClick,
         onPreviousPage,
         onNextPage,
     }: ContentListProps) => {
+        const { user } = useAuth();
+
+        const canManageCategory = useMemo(
+            () => user?.is_superuser || user?.roles?.includes(StaticRoles.CATEGORIES_MANAGER.name),
+            [user]
+        );
+
         const handleItemClick = useCallback(
             (item: ContentItemType) => {
                 onItemClick(item);
@@ -55,7 +66,9 @@ const ContentList = memo(
                             <ContentItem
                                 key={`${item.type}-${item.id}`}
                                 item={item}
+                                canManageCategory={canManageCategory || false}
                                 onItemClick={handleItemClick}
+                                onManageClick={onManageClick}
                             />
                         ))}
                     </>

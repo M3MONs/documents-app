@@ -1,23 +1,40 @@
 import { memo } from "react";
-import { FileText, Folder, ChevronRight } from "lucide-react";
+import { FileText, Folder } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import type { ContentItem as ContentItemType } from "@/types/categoryContent";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface ContentItemProps {
     item: ContentItemType;
+    canManageCategory: boolean;
     onItemClick: (item: ContentItemType) => void;
+    onManageClick: (item: ContentItemType) => void;
 }
 
-const ContentItem = memo(({ item, onItemClick }: ContentItemProps) => {
+const ContentItem = memo(({ item, canManageCategory, onItemClick, onManageClick }: ContentItemProps) => {
     const isFolder = item.type === "folder";
+
+    const handleCardClick = () => {
+        onItemClick(item);
+    };
+
+    const handleDropdownClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+    };
 
     return (
         <Card
             className={`cursor-pointer transition-all hover:shadow-sm hover:border-primary group ${
                 isFolder ? "hover:bg-accent/50" : "hover:bg-muted/30"
             }`}
-            onClick={() => onItemClick(item)}
+            onClick={handleCardClick}
         >
             <CardContent className="flex items-center justify-between py-3 px-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -33,13 +50,19 @@ const ContentItem = memo(({ item, onItemClick }: ContentItemProps) => {
                         )}
                     </div>
                 </div>
-                {isFolder && (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0 ml-2" />
-                )}
-                {!isFolder && (
-                    <Button variant="ghost" size="sm" className="ml-2">
-                        Open
-                    </Button>
+                {isFolder && canManageCategory && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="ml-2" onClick={handleDropdownClick}>
+                                ...
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="start">
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onManageClick(item); }}>Manage</DropdownMenuItem>
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 )}
             </CardContent>
         </Card>

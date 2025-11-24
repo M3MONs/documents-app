@@ -174,6 +174,14 @@ class CategoryService:
             ordering_desc=pagination.ordering_desc,
         )
 
+        from services.folder_service import FolderService
+
+        accessible_folders = []
+        for folder in folders:
+            if await FolderService.user_has_access_to_folder(db, str(folder.id), user_id):
+                accessible_folders.append(folder)
+
+        folders = accessible_folders
         folders_returned = len(folders)
         remaining_slots = pagination.page_size - folders_returned
 
@@ -199,7 +207,7 @@ class CategoryService:
         total_pages = (total_items + pagination.page_size - 1) // pagination.page_size
 
         return CategoryContentResponse(
-            folders=[FolderItem(id=str(f.id), name=str(f.name)) for f in folders],
+            folders=[FolderItem(id=str(f.id), name=str(f.name), is_private=f.is_private) for f in folders],
             documents=[DocumentItem(id=str(d.id), name=str(d.name), mime_type=str(d.mime_type)) for d in documents],
             pagination=PaginationInfo(
                 page=pagination.page,

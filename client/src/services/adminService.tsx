@@ -285,4 +285,8 @@ export default class AdminService {
     static unassignDepartmentFromFolder = async (folderId: string, departmentId: string) => {
         await apiClient.post(`${URL}/folders/${folderId}/departments/${departmentId}/unassign`);
     };
+
+    static setFolderPrivacy = async (folderId: string, isPrivate: boolean) => {
+        await apiClient.patch(`${URL}/folders/${folderId}/privacy`, { is_private: isPrivate });
+    };
 }

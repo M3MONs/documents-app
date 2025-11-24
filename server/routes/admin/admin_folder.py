@@ -4,8 +4,8 @@ from core.database import get_db
 
 from core.roles import StaticRole
 from core.security import RoleChecker
-from schemas.pagination import PaginationParams
-from schemas.pagination import PaginationResponse
+from schemas.folder import FolderPrivacyUpdate
+from schemas.pagination import PaginationParams, PaginationResponse
 from services.user_service import UserService
 from services.department_service import DepartmentService
 from services.folder_service import FolderService
@@ -123,3 +123,15 @@ async def unassign_user_from_folder(folder_id: str, user_id: str, db: AsyncSessi
         raise HTTPException(status_code=400, detail="User is not assigned to the folder")
 
     await FolderService.unassign_user_from_folder(db, folder, user)
+
+
+@router.patch("/{folder_id}/privacy")
+async def set_folder_privacy(folder_id: str, privacy_update: FolderPrivacyUpdate, db: AsyncSession = Depends(get_db)) -> None:
+    folder = await FolderService.get_folder_by_id_with_category(db, folder_id)
+
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(folder.category.organization_id))
+
+    await FolderService.set_folder_private(db, folder_id, privacy_update.is_private)

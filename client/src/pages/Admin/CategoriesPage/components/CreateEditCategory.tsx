@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Category } from "@/types/category";
 import type { Organization } from "@/types/organization";
+import { Switch } from "@/components/ui/switch";
 
 const createCategorySchema = z.object({
     name: z
@@ -19,6 +20,8 @@ const createCategorySchema = z.object({
         .min(3, "Category name must be at least 3 characters")
         .max(100, "Category name must be at most 100 characters"),
     description: z.string().max(255, "Description must be at most 255 characters").optional(),
+    is_active: z.boolean(),
+    is_public: z.boolean(),
     organization_id: z.string("Organization ID must be a valid UUID"),
 });
 
@@ -33,13 +36,14 @@ interface CreateEditCategoryProps {
 
 const CreateEditCategory = ({ isOpen, onClose, onConfirm, category }: CreateEditCategoryProps) => {
     const [organizations, setOrganizations] = useState<Organization[]>([]);
-
     const form = useForm<CreateEditCategoryFormData>({
         resolver: zodResolver(createCategorySchema),
         defaultValues: {
             name: category?.name || "",
             description: category?.description || "",
             organization_id: category?.organization?.id || "",
+            is_active: category?.is_active || false,
+            is_public: category?.is_public || false,
         },
     });
 
@@ -48,6 +52,8 @@ const CreateEditCategory = ({ isOpen, onClose, onConfirm, category }: CreateEdit
             name: category?.name || "",
             description: category?.description || "",
             organization_id: category?.organization?.id || "",
+            is_active: category?.is_active || false,
+            is_public: category?.is_public || false,
         });
     }, [category?.id]);
 
@@ -126,6 +132,34 @@ const CreateEditCategory = ({ isOpen, onClose, onConfirm, category }: CreateEdit
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="is_active"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Active</FormLabel>
+                                    <FormControl>
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="is_public"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Public</FormLabel>
+                                    <FormControl>
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

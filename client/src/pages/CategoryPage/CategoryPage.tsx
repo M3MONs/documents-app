@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import SelectCategoryInfo from "@/components/atoms/SelectCategoryInfo";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useCategoryContent } from "@/hooks/useCategoryContent";
@@ -14,6 +14,7 @@ import FolderManageDialog from "./components/Manager/FolderManageDialog";
 
 const CategoryPage = () => {
     const { categoryId } = useParams<{ categoryId: string }>();
+    const navigate = useNavigate();
     const [selectedFolder, setSelectedFolder] = useState<any | null>(null);
     const {
         currentFolderId,
@@ -49,6 +50,12 @@ const CategoryPage = () => {
         searchQuery: debouncedSearchQuery.trim() || undefined,
         page,
     });
+
+    useEffect(() => {
+        if (categoryId && !data && !isLoading) {
+            navigate("/");
+        }
+    }, [categoryId, data, isLoading, navigate]);
 
     const combinedContent = useMemo(() => {
         if (!data) return [];

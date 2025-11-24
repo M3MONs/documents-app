@@ -52,7 +52,6 @@ class BaseRepository:
 
         if filters:
             for field, value in filters:
-                print(f"Applying filter on field: {field} with value: {value}", value in (1, '1', 'yes', 'Yes', 'YES', True, 'true', 'True', 'TRUE'))
                 column = getattr(model, field)
                 if isinstance(column.type, Boolean):
                     if value in (1, '1', 'yes', 'Yes', 'YES', 'true', 'True', 'TRUE'):

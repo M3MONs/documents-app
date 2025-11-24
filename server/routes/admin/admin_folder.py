@@ -28,8 +28,6 @@ async def get_departments_assigned_to_folder(
 
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
-    
-    print(folder.category.organization_id)
 
     RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(folder.category.organization_id))
 

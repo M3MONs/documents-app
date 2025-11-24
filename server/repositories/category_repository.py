@@ -20,13 +20,9 @@ class CategoryRepository:
         stmt = (
             select(Category)
             .where(Category.organization_id == organization_id)
+            .where(Category.is_active.is_(True))
             .where(
                 or_(
-                    ~exists(
-                        select(1)
-                        .select_from(category_department_visibility)
-                        .where(category_department_visibility.c.category_id == Category.id)
-                    ),
                     exists(
                         select(1)
                         .select_from(category_department_visibility)
@@ -39,6 +35,7 @@ class CategoryRepository:
                             )
                         )
                     ),
+                    Category.is_public.is_(True),
                 )
             )
         )

@@ -49,6 +49,7 @@ class UserRepository:
                 selectinload(User.organization_roles).selectinload(UserOrganizationRole.role),
                 selectinload(User.primary_organization),
                 selectinload(User.additional_organizations),
+                selectinload(User.departments),
             )
             .where(User.id == user_id)
         )

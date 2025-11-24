@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Folder } from "lucide-react";
 import { useState } from "react";
 import DepartmentsTab from "./tabs/DepartmentsTab.tsx";
+import SettingsTab from "./tabs/SettingsTab.tsx";
 
 interface FolderManageDialogProps {
     selectedFolder: any | null;
@@ -36,15 +37,19 @@ const FolderManageDialog = ({ selectedFolder, setSelectedFolder }: FolderManageD
                         onValueChange={setActiveTab}
                         className="w-full flex flex-col flex-1 overflow-hidden"
                     >
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="departments">Departments</TabsTrigger>
                             <TabsTrigger value="users">Users</TabsTrigger>
+                            <TabsTrigger value="settings">Settings</TabsTrigger>
                         </TabsList>
                         <TabsContent value="departments">
                             <DepartmentsTab selectedFolder={selectedFolder} />
                         </TabsContent>
                         <TabsContent value="users">
                             <div className="p-4">Users management coming soon...</div>
+                        </TabsContent>
+                        <TabsContent value="settings">
+                            <SettingsTab selectedFolder={selectedFolder} />
                         </TabsContent>
                     </Tabs>
                 </div>

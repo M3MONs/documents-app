@@ -1,5 +1,5 @@
 from uuid import uuid4
-from sqlalchemy import Column, UUID, String, ForeignKey, Table, DateTime, func
+from sqlalchemy import Boolean, Column, UUID, String, ForeignKey, Table, DateTime, func
 from sqlalchemy.orm import relationship
 from core.database import Base
 
@@ -19,6 +19,8 @@ class Category(Base):
     name = Column(String(100), nullable=False, index=True)
     description = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_public = Column(Boolean, default=False, nullable=False)
 
     organization_id = Column(
         UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True

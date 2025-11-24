@@ -52,10 +52,10 @@ const CategoryPage = () => {
     });
 
     useEffect(() => {
-        if (categoryId && !data && !isLoading) {
+        if (error) {
             navigate("/");
         }
-    }, [categoryId, data, isLoading, navigate]);
+    }, [error, navigate]);
 
     const combinedContent = useMemo(() => {
         if (!data) return [];
@@ -67,6 +67,7 @@ const CategoryPage = () => {
                 ...data.folders.map((folder: any) => ({
                     id: folder.id,
                     name: folder.name,
+                    is_private: folder.is_private,
                     type: "folder" as const,
                 }))
             );

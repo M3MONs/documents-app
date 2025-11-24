@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Sequence
 from core.database import get_db
@@ -29,4 +29,9 @@ async def get_category_content_in_folder(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CategoryContentResponse | None:
+    category = await CategoryService.get_category_by_id(db, category_id)
+    
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
     return await CategoryService.get_category_content_in_folder(db, category_id, folder_id, pagination, str(current_user.id))

@@ -101,6 +101,13 @@ class FolderRepository:
             select(Folder).where(Folder.id == folder_id, Folder.allowed_departments.any(Department.id == department_id))
         )
         return result.scalar_one_or_none() is not None
+    
+    @staticmethod
+    async def is_any_department_assigned(db: AsyncSession, folder_id: str, department_ids: list[str]) -> bool:
+        result = await db.execute(
+            select(Folder).where(Folder.id == folder_id, Folder.allowed_departments.any(Department.id.in_(department_ids)))
+        )
+        return result.scalar_one_or_none() is not None
 
     @staticmethod
     async def assign_department_to_folder(db: AsyncSession, folder: Folder, department: Department) -> None:

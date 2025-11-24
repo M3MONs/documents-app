@@ -3,7 +3,7 @@ from enum import Enum
 from core.database import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import LtreeType
-from sqlalchemy import Column, UUID, String, ForeignKey, Table, DateTime, func, event
+from sqlalchemy import Boolean, Column, UUID, String, ForeignKey, Table, DateTime, func, event
 
 folder_department_permissions = Table(
     "folder_department_permissions",
@@ -35,6 +35,7 @@ class Folder(Base):
     name = Column(String(100), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     path = Column(LtreeType, nullable=True, index=True)
+    is_private = Column(Boolean, default=False, nullable=False)
 
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="CASCADE"), nullable=True, index=True)
     category = relationship("Category", back_populates="folders")

@@ -75,7 +75,7 @@ class SyncService:
                     "file_hash": file_hash,
                     "mime_type": mime_type,
                     "file_size": file_path.stat().st_size,
-                    "folder_path": str(rel_path.parent) if rel_path.parent != Path(".") else None,
+                    "folder_path": str(rel_path.parent).replace("\\", ".").replace("/", ".") if rel_path.parent != Path(".") else None,
                 }
 
         return folders, documents
@@ -96,7 +96,6 @@ class SyncService:
             folder = await FolderService.get_by_path(db, category_id, path_str)
             if not folder:
                 parent_id = await SyncService._get_parent_folder_id(db, category_id, data["parent_path"])
-                
                 await FolderService.create_folder(
                     db,
                     {
@@ -113,12 +112,11 @@ class SyncService:
             doc = await DocumentService.get_by_file_path(db, file_path)
             if not doc:
                 folder_id = await SyncService._get_folder_id_by_path(db, category_id, data["folder_path"])
-                
                 await DocumentService.create_document(
                     db,
                     {
                         "name": data["name"],
-                        "file_path": data["file_path"],
+                        "file_path": file_path,
                         "file_hash": data["file_hash"],
                         "mime_type": data["mime_type"],
                         "file_size": data["file_size"],

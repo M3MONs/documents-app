@@ -112,6 +112,17 @@ class FolderRepository:
     @staticmethod
     async def assign_department_to_folder(db: AsyncSession, folder: Folder, department: Department) -> None:
         await db.execute(insert(folder_department_permissions).values(folder_id=folder.id, department_id=department.id))
+        child_folders = await FolderRepository.get_all_child_folders(db, str(folder.id))
+        
+        if child_folders:
+            await db.execute(
+                insert(folder_department_permissions),
+                [
+                    {"folder_id": child_folder.id, "department_id": department.id}
+                    for child_folder in child_folders
+                ],
+            )
+        
         await db.commit()
 
     @staticmethod
@@ -122,6 +133,17 @@ class FolderRepository:
                 folder_department_permissions.c.department_id == department.id,
             )
         )
+        
+        child_folders = await FolderRepository.get_all_child_folders(db, str(folder.id))
+        
+        if child_folders:
+            await db.execute(
+                delete(folder_department_permissions).where(
+                    folder_department_permissions.c.folder_id.in_([child_folder.id for child_folder in child_folders]),
+                    folder_department_permissions.c.department_id == department.id,
+                )
+            )
+        
         await db.commit()
 
     @staticmethod
@@ -201,3 +223,15 @@ class FolderRepository:
             department_schemas.append(DepartmentWithAssignment(**department_dict))
 
         return PaginationResponse(total=total, items=department_schemas)
+    
+    @staticmethod
+    async def get_all_child_folders(db: AsyncSession, folder_id: str) -> Sequence[Folder]:
+        folder = await FolderRepository.get_by_id_with_category(db, folder_id)
+        
+        if not folder:
+            return []
+
+        query = select(Folder).where(Folder.category_id == folder.category_id, Folder.path.descendant_of(folder.path))
+        result = await db.execute(query)
+        return result.scalars().all()
+    

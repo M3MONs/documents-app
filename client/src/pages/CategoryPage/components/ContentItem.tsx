@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { FileText, Folder } from "lucide-react";
+import { Folder } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ContentItem as ContentItemType } from "@/types/categoryContent";
 import {
@@ -10,6 +10,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import FileIcon from "./FileIcon";
 
 interface ContentItemProps {
     item: ContentItemType;
@@ -41,7 +42,7 @@ const ContentItem = memo(({ item, canManageCategory, onItemClick, onManageClick 
                     {isFolder ? (
                         <Folder className="h-5 w-5 text-blue-500 flex-shrink-0" />
                     ) : (
-                        <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                        <FileIcon mimeType={item.mime_type} />
                     )}
                     <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{item.name}</p>

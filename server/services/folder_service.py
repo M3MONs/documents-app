@@ -67,6 +67,14 @@ class FolderService:
         return await FolderRepository.get_paginated_departments_assigned_to_folder(
             db, folder_id=folder_id, pagination=pagination
         )
+    
+    @staticmethod
+    async def get_paginated_users_assigned_to_folder(
+        db: AsyncSession, pagination, folder_id: str
+    ) -> PaginationResponse:
+        return await FolderRepository.get_paginated_users_assigned_to_folder(
+            db, folder_id=folder_id, pagination=pagination
+        )
 
     @staticmethod
     async def is_any_department_assigned(db: AsyncSession, folder_id: str, department_ids: list[str]) -> bool:

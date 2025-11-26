@@ -22,6 +22,10 @@ async def get_document_content(
     if not document:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
+    permitted = await DocumentService.is_user_permitted_to_view_document(db, current_user, document_id)
+    if not permitted:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this document")
+
     file_path = DocumentService.get_file_path(document)
 
     if not DocumentService.is_file_exists(file_path):
@@ -41,6 +45,10 @@ async def get_document_metadata(
 
     if not document:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    permitted = await DocumentService.is_user_permitted_to_view_document(db, current_user, document_id)
+    if not permitted:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this document")
 
     file_path = DocumentService.get_file_path(document)
     file_exists = DocumentService.is_file_exists(file_path)
@@ -69,6 +77,10 @@ async def download_document(
 
     if not document:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    permitted = await DocumentService.is_user_permitted_to_view_document(db, current_user, document_id)
+    if not permitted:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this document")
 
     file_path = DocumentService.get_file_path(document)
 

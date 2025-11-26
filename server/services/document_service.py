@@ -6,6 +6,8 @@ from models.document import Document
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
+from models.user import User
+
 
 class DocumentService:
     @staticmethod
@@ -47,3 +49,9 @@ class DocumentService:
     @staticmethod
     def is_file_exists(file_path: str) -> bool:
         return os.path.isfile(file_path)
+    
+    @staticmethod
+    async def is_user_permitted_to_view_document(
+        db: AsyncSession, user: User, document_id: str
+    ) -> bool:
+        return await DocumentRepository.is_user_permitted_to_view_document(db, user, document_id)

@@ -61,20 +61,12 @@ class FolderService:
         await FolderRepository.unassign_user_from_folder(db, folder, user)
 
     @staticmethod
-    async def get_paginated_departments_assigned_to_folder(
-        db: AsyncSession, pagination, folder_id: str
-    ) -> PaginationResponse:
-        return await FolderRepository.get_paginated_departments_assigned_to_folder(
-            db, folder_id=folder_id, pagination=pagination
-        )
-    
+    async def get_paginated_departments_assigned_to_folder(db: AsyncSession, pagination, folder_id: str) -> PaginationResponse:
+        return await FolderRepository.get_paginated_departments_assigned_to_folder(db, folder_id=folder_id, pagination=pagination)
+
     @staticmethod
-    async def get_paginated_users_assigned_to_folder(
-        db: AsyncSession, pagination, folder_id: str
-    ) -> PaginationResponse:
-        return await FolderRepository.get_paginated_users_assigned_to_folder(
-            db, folder_id=folder_id, pagination=pagination
-        )
+    async def get_paginated_users_assigned_to_folder(db: AsyncSession, pagination, folder_id: str) -> PaginationResponse:
+        return await FolderRepository.get_paginated_users_assigned_to_folder(db, folder_id=folder_id, pagination=pagination)
 
     @staticmethod
     async def is_any_department_assigned(db: AsyncSession, folder_id: str, department_ids: list[str]) -> bool:
@@ -97,15 +89,15 @@ class FolderService:
         if not folder:
             return False
 
+        user = await UserService.get_user_by_id(db, user_id)
+
+        if user and bool(user.is_superuser):
+            return True
+
         if not bool(folder.is_private):
             return True
 
         if await FolderService.is_user_assigned(db, folder_id, user_id):
-            return True
-
-        user = await UserService.get_user_by_id(db, user_id)
-
-        if user and bool(user.is_superuser):
             return True
 
         if user:

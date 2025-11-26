@@ -58,9 +58,7 @@ async def assign_department_to_folder(folder_id: str, department_id: str, db: As
 
 
 @router.post("/{folder_id}/departments/{department_id}/unassign")
-async def unassign_department_from_folder(
-    folder_id: str, department_id: str, db: AsyncSession = Depends(get_db)
-) -> None:
+async def unassign_department_from_folder(folder_id: str, department_id: str, db: AsyncSession = Depends(get_db)) -> None:
     folder = await FolderService.get_folder_by_id_with_category(db, folder_id)
 
     if not folder:
@@ -82,9 +80,25 @@ async def unassign_department_from_folder(
     await FolderService.unassign_department_from_folder(db, folder, department)
 
 
+@router.get("/{folder_id}/users")
+async def get_users_assigned_to_folder(
+    folder_id: str,
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(),
+) -> PaginationResponse | None:
+    folder = await FolderService.get_folder_by_id_with_category(db, folder_id)
+
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(folder.category.organization_id))
+
+    return await FolderService.get_paginated_users_assigned_to_folder(db, pagination, folder_id=folder_id)
+
+
 @router.post("/{folder_id}/users/{user_id}/assign")
 async def assign_user_to_folder(folder_id: str, user_id: str, db: AsyncSession = Depends(get_db)) -> None:
-    folder = await FolderService.get_folder_by_id(db, folder_id)
+    folder = await FolderService.get_folder_by_id_with_category(db, folder_id)
 
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
@@ -94,7 +108,7 @@ async def assign_user_to_folder(folder_id: str, user_id: str, db: AsyncSession =
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if folder.category.organization_id not in user.additional_organizations:
+    if str(folder.category.organization_id) not in [str(org.id) for org in user.additional_organizations]:
         raise HTTPException(status_code=400, detail="User does not belong to the same organization as the folder")
 
     RoleChecker([StaticRole.CATEGORIES_MANAGER.name_value], org_param=str(folder.category.organization_id))
@@ -107,7 +121,7 @@ async def assign_user_to_folder(folder_id: str, user_id: str, db: AsyncSession =
 
 @router.post("/{folder_id}/users/{user_id}/unassign")
 async def unassign_user_from_folder(folder_id: str, user_id: str, db: AsyncSession = Depends(get_db)) -> None:
-    folder = await FolderService.get_folder_by_id(db, folder_id)
+    folder = await FolderService.get_folder_by_id_with_category(db, folder_id)
 
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")

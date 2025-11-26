@@ -289,4 +289,24 @@ export default class AdminService {
     static setFolderPrivacy = async (folderId: string, isPrivate: boolean) => {
         await apiClient.patch(`${URL}/folders/${folderId}/privacy`, { is_private: isPrivate });
     };
+
+    static getFolderUsers = async (folderId: string, pagination: PaginationParams) => {
+        const params = { ...pagination };
+
+        handleFilterParams(params);
+
+        const response = await apiClient.get(`${URL}/folders/${folderId}/users`, {
+            params,
+        });
+
+        return response.data;
+    };
+
+    static assignUserToFolder = async (folderId: string, userId: string) => {
+        await apiClient.post(`${URL}/folders/${folderId}/users/${userId}/assign`);
+    };
+
+    static unassignUserFromFolder = async (folderId: string, userId: string) => {
+        await apiClient.post(`${URL}/folders/${folderId}/users/${userId}/unassign`);
+    };
 }

@@ -4,6 +4,7 @@ import { Folder } from "lucide-react";
 import { useState } from "react";
 import DepartmentsTab from "./tabs/DepartmentsTab.tsx";
 import SettingsTab from "./tabs/SettingsTab.tsx";
+import UsersTab from "./tabs/UsersTab.tsx";
 
 interface FolderManageDialogProps {
     selectedFolder: any | null;
@@ -46,7 +47,7 @@ const FolderManageDialog = ({ selectedFolder, setSelectedFolder }: FolderManageD
                             <DepartmentsTab selectedFolder={selectedFolder} />
                         </TabsContent>
                         <TabsContent value="users">
-                            <div className="p-4">Users management coming soon...</div>
+                            <UsersTab selectedFolder={selectedFolder} />
                         </TabsContent>
                         <TabsContent value="settings">
                             <SettingsTab selectedFolder={selectedFolder} />

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useParams } from "react-router";
 import SelectCategoryInfo from "@/components/atoms/SelectCategoryInfo";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useCategoryContent } from "@/hooks/useCategoryContent";
@@ -13,164 +13,139 @@ import useCategoryPageState from "@/hooks/useCategoryPageState";
 import FolderManageDialog from "./components/Manager/FolderManageDialog";
 
 const CategoryPage = () => {
-    const { categoryId } = useParams<{ categoryId: string }>();
-    const navigate = useNavigate();
-    const [selectedFolder, setSelectedFolder] = useState<any | null>(null);
-    const {
-        currentFolderId,
-        setCurrentFolderId,
-        folderHistory,
-        setFolderHistory,
-        searchQuery,
-        setSearchQuery,
-        isFocused,
-        setIsFocused,
-        selectedDocument,
-        setSelectedDocument,
-        inputRef,
-        page,
-        setPage,
-    } = useCategoryPageState();
+  const { categoryId } = useParams<{ categoryId: string }>();
+  const [selectedFolder, setSelectedFolder] = useState<ContentItem | null>(null);
 
-    const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const {
+    currentFolderId,
+    folderHistory,
+    searchQuery,
+    page,
+    navigateToFolder,
+    navigateToBreadcrumb,
+    navigateBack,
+    setSearchQuery,
+    setPage,
+    isFocused,
+    setIsFocused,
+    selectedDocument,
+    setSelectedDocument,
+    inputRef,
+  } = useCategoryPageState();
 
-    useEffect(() => {
-        if (isFocused && inputRef.current && document.activeElement !== inputRef.current) {
-            inputRef.current.focus();
-        }
-    }, [isFocused]);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-    useEffect(() => {
-        setPage(1);
-    }, [debouncedSearchQuery, currentFolderId, setPage]);
+  useEffect(() => {
+    if (isFocused && inputRef.current && document.activeElement !== inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isFocused]);
 
-    const { data, isLoading, error } = useCategoryContent({
-        categoryId: categoryId || "",
-        folderId: currentFolderId,
-        searchQuery: debouncedSearchQuery.trim() || undefined,
-        page,
-    });
+  const { data, isLoading, error } = useCategoryContent({
+    categoryId: categoryId || "",
+    folderId: currentFolderId,
+    searchQuery: debouncedSearchQuery.trim() || undefined,
+    page,
+  });
 
-    useEffect(() => {
-        if (error) {
-            navigate("/");
-        }
-    }, [error, navigate]);
+  const combinedContent = useMemo(() => {
+    if (!data) return [];
 
-    const combinedContent = useMemo(() => {
-        if (!data) return [];
+    const items: ContentItem[] = [];
 
-        const items: ContentItem[] = [];
-
-        if (data.folders) {
-            items.push(
-                ...data.folders.map((folder: any) => ({
-                    id: folder.id,
-                    name: folder.name,
-                    is_private: folder.is_private,
-                    type: "folder" as const,
-                }))
-            );
-        }
-
-        if (data.documents) {
-            items.push(
-                ...data.documents.map((doc: any) => ({
-                    id: doc.id,
-                    name: doc.name,
-                    type: "document" as const,
-                    mime_type: doc.mime_type,
-                }))
-            );
-        }
-
-        return items;
-    }, [data]);
-
-    const handleItemClick = useCallback(
-        (item: ContentItem) => {
-            if (item.type === "folder") {
-                setCurrentFolderId(item.id);
-                setFolderHistory((prev) => [
-                    ...prev,
-                    {
-                        id: item.id,
-                        name: item.name,
-                    },
-                ]);
-            } else if (item.type === "document") {
-                setSelectedDocument(item);
-            }
-        },
-        [setCurrentFolderId, setFolderHistory, setSelectedDocument]
-    );
-
-    const handleBreadcrumbClick = useCallback(
-        (index: number) => {
-            const targetFolder = folderHistory[index];
-            setCurrentFolderId(targetFolder.id);
-            setFolderHistory((prev) => prev.slice(0, index + 1));
-            setSearchQuery("");
-        },
-        [folderHistory, setCurrentFolderId, setFolderHistory, setSearchQuery]
-    );
-
-    const handleNavigateBack = useCallback(() => {
-        if (folderHistory.length > 1) {
-            const newHistory = folderHistory.slice(0, -1);
-            const prevFolder = newHistory[newHistory.length - 1];
-            setCurrentFolderId(prevFolder.id);
-            setFolderHistory(newHistory);
-            setSearchQuery("");
-        }
-    }, [folderHistory, setCurrentFolderId, setFolderHistory, setSearchQuery]);
-
-    const handleManageFolder = useCallback(
-        (item: ContentItem) => {
-            setSelectedFolder(item);
-        },
-        [setSelectedFolder]
-    );
-
-    if (!categoryId) {
-        return <SelectCategoryInfo />;
+    if (data.folders) {
+      items.push(
+        ...data.folders.map((folder: any) => ({
+          id: folder.id,
+          name: folder.name,
+          is_private: folder.is_private,
+          type: "folder" as const,
+        }))
+      );
     }
 
-    return (
-        <DashboardLayout>
-            <div className="flex flex-col gap-6 p-6">
-                <CategoryHeader
-                    folderHistory={folderHistory}
-                    searchQuery={searchQuery}
-                    isFocused={isFocused}
-                    onSearchChange={setSearchQuery}
-                    onFocusChange={setIsFocused}
-                    onBreadcrumbClick={handleBreadcrumbClick}
-                    inputRef={inputRef}
-                />
+    if (data.documents) {
+      items.push(
+        ...data.documents.map((doc: any) => ({
+          id: doc.id,
+          name: doc.name,
+          type: "document" as const,
+          mime_type: doc.mime_type,
+        }))
+      );
+    }
 
-                {error && <ErrorAlert error={error} />}
+    return items;
+  }, [data]);
 
-                <ContentList
-                    items={combinedContent}
-                    isLoading={isLoading}
-                    searchQuery={searchQuery}
-                    currentPage={page}
-                    pagination={data?.pagination}
-                    showBackButton={!!currentFolderId}
-                    onItemClick={handleItemClick}
-                    onManageClick={handleManageFolder}
-                    onBackClick={handleNavigateBack}
-                    onPreviousPage={() => setPage((p) => Math.max(1, p - 1))}
-                    onNextPage={() => setPage((p) => p + 1)}
-                />
+  const handleItemClick = useCallback(
+    (item: ContentItem) => {
+      if (item.type === "folder") {
+        navigateToFolder(item.id, item.name);
+      } else if (item.type === "document") {
+        setSelectedDocument(item);
+      }
+    },
+    [navigateToFolder, setSelectedDocument]
+  );
 
-                <DocumentDialog selectedDocument={selectedDocument} setSelectedDocument={setSelectedDocument} />
+  const handleBreadcrumbClick = useCallback(
+    (index: number) => {
+      navigateToBreadcrumb(index);
+    },
+    [navigateToBreadcrumb]
+  );
 
-                <FolderManageDialog selectedFolder={selectedFolder} setSelectedFolder={setSelectedFolder} />
-            </div>
-        </DashboardLayout>
-    );
+  const handleNavigateBack = useCallback(() => {
+    navigateBack();
+  }, [navigateBack]);
+
+  const handleManageFolder = useCallback(
+    (item: ContentItem) => {
+      setSelectedFolder(item);
+    },
+    [setSelectedFolder]
+  );
+
+  if (!categoryId) {
+    return <SelectCategoryInfo />;
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="flex flex-col gap-6 p-6">
+        <CategoryHeader
+          folderHistory={folderHistory}
+          searchQuery={searchQuery}
+          isFocused={isFocused}
+          onSearchChange={setSearchQuery}
+          onFocusChange={setIsFocused}
+          onBreadcrumbClick={handleBreadcrumbClick}
+          inputRef={inputRef}
+        />
+
+        {error && <ErrorAlert error={error} />}
+
+        <ContentList
+          items={combinedContent}
+          isLoading={isLoading}
+          searchQuery={searchQuery}
+          currentPage={page}
+          pagination={data?.pagination}
+          showBackButton={!!currentFolderId}
+          onItemClick={handleItemClick}
+          onManageClick={handleManageFolder}
+          onBackClick={handleNavigateBack}
+          onPreviousPage={() => setPage(Math.max(1, page - 1))}
+          onNextPage={() => setPage(page + 1)}
+        />
+
+        <DocumentDialog selectedDocument={selectedDocument} setSelectedDocument={setSelectedDocument} />
+
+        <FolderManageDialog selectedFolder={selectedFolder} setSelectedFolder={setSelectedFolder} />
+      </div>
+    </DashboardLayout>
+  );
 };
 
 export default CategoryPage;

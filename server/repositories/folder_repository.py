@@ -2,12 +2,15 @@ from typing import Optional, Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy_utils import Ltree
 from sqlalchemy.future import select
-from sqlalchemy import delete, exists, func, insert
+from sqlalchemy import delete, exists, func
 from sqlalchemy.orm import selectinload
-from models.folder import Folder, folder_department_permissions
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from models.folder import Folder, folder_department_permissions, folder_user_permissions
 from models.department import Department
+from models.organization import Organization
 from schemas.pagination import PaginationParams, PaginationResponse
 from schemas.admin import DepartmentWithAssignment
+from models.user import User
 
 
 class FolderRepository:
@@ -97,32 +100,30 @@ class FolderRepository:
 
     @staticmethod
     async def is_department_assigned(db: AsyncSession, folder_id: str, department_id: str) -> bool:
-        result = await db.execute(
-            select(Folder).where(Folder.id == folder_id, Folder.allowed_departments.any(Department.id == department_id))
-        )
+        result = await db.execute(select(Folder).where(Folder.id == folder_id, Folder.allowed_departments.any(Department.id == department_id)))
         return result.scalar_one_or_none() is not None
-    
+
     @staticmethod
     async def is_any_department_assigned(db: AsyncSession, folder_id: str, department_ids: list[str]) -> bool:
-        result = await db.execute(
-            select(Folder).where(Folder.id == folder_id, Folder.allowed_departments.any(Department.id.in_(department_ids)))
-        )
+        result = await db.execute(select(Folder).where(Folder.id == folder_id, Folder.allowed_departments.any(Department.id.in_(department_ids))))
         return result.scalar_one_or_none() is not None
 
     @staticmethod
     async def assign_department_to_folder(db: AsyncSession, folder: Folder, department: Department) -> None:
-        await db.execute(insert(folder_department_permissions).values(folder_id=folder.id, department_id=department.id))
+        await db.execute(
+            pg_insert(folder_department_permissions)
+            .values(folder_id=folder.id, department_id=department.id)
+            .on_conflict_do_nothing(constraint="folder_department_permissions_pkey")
+        )
         child_folders = await FolderRepository.get_all_child_folders(db, str(folder.id))
-        
+
         if child_folders:
             await db.execute(
-                insert(folder_department_permissions),
-                [
-                    {"folder_id": child_folder.id, "department_id": department.id}
-                    for child_folder in child_folders
-                ],
+                pg_insert(folder_department_permissions)
+                .values([{"folder_id": child_folder.id, "department_id": department.id} for child_folder in child_folders])
+                .on_conflict_do_nothing(constraint="folder_department_permissions_pkey")
             )
-        
+
         await db.commit()
 
     @staticmethod
@@ -133,9 +134,9 @@ class FolderRepository:
                 folder_department_permissions.c.department_id == department.id,
             )
         )
-        
+
         child_folders = await FolderRepository.get_all_child_folders(db, str(folder.id))
-        
+
         if child_folders:
             await db.execute(
                 delete(folder_department_permissions).where(
@@ -143,38 +144,58 @@ class FolderRepository:
                     folder_department_permissions.c.department_id == department.id,
                 )
             )
-        
+
         await db.commit()
 
     @staticmethod
     async def is_user_assigned(db: AsyncSession, folder_id: str, user_id: str) -> bool:
         from models.user import User
 
-        result = await db.execute(
-            select(Folder).where(Folder.id == folder_id, Folder.allowed_users.any(User.id == user_id))
-        )
-        
+        result = await db.execute(select(Folder).where(Folder.id == folder_id, Folder.allowed_users.any(User.id == user_id)))
+
         return result.scalar_one_or_none() is not None
 
     @staticmethod
-    async def assign_user_to_folder(db: AsyncSession, folder: Folder, user) -> None:
-        await db.execute(insert(folder.allowed_users).values(folder_id=folder.id, user_id=user.id))
+    async def assign_user_to_folder(db: AsyncSession, folder: Folder, user: User) -> None:
+        await db.execute(
+            pg_insert(folder_user_permissions)
+            .values(folder_id=folder.id, user_id=user.id)
+            .on_conflict_do_nothing(constraint="folder_user_permissions_pkey")
+        )
+        child_folders = await FolderRepository.get_all_child_folders(db, str(folder.id))
+
+        if child_folders:
+            await db.execute(
+                pg_insert(folder_user_permissions)
+                .values([{"folder_id": child_folder.id, "user_id": user.id} for child_folder in child_folders])
+                .on_conflict_do_nothing(constraint="folder_user_permissions_pkey")
+            )
+
         await db.commit()
 
     @staticmethod
-    async def unassign_user_from_folder(db: AsyncSession, folder: Folder, user) -> None:
+    async def unassign_user_from_folder(db: AsyncSession, folder: Folder, user: User) -> None:
         await db.execute(
-            delete(folder.allowed_users).where(
-                folder.allowed_users.c.folder_id == folder.id,
-                folder.allowed_users.c.user_id == user.id,
+            delete(folder_user_permissions).where(
+                folder_user_permissions.c.folder_id == folder.id,
+                folder_user_permissions.c.user_id == user.id,
             )
         )
+
+        child_folders = await FolderRepository.get_all_child_folders(db, str(folder.id))
+
+        if child_folders:
+            await db.execute(
+                delete(folder_user_permissions).where(
+                    folder_user_permissions.c.folder_id.in_([child_folder.id for child_folder in child_folders]),
+                    folder_user_permissions.c.user_id == user.id,
+                )
+            )
+
         await db.commit()
 
     @staticmethod
-    async def get_paginated_departments_assigned_to_folder(
-        db: AsyncSession, folder_id: str, pagination: PaginationParams
-    ) -> PaginationResponse:
+    async def get_paginated_departments_assigned_to_folder(db: AsyncSession, folder_id: str, pagination: PaginationParams) -> PaginationResponse:
         folder_query = select(Folder).options(selectinload(Folder.category)).where(Folder.id == folder_id)
         folder_result = await db.execute(folder_query)
         folder = folder_result.scalar_one_or_none()
@@ -197,11 +218,7 @@ class FolderRepository:
             )
         )
 
-        total_query = (
-            select(func.count())
-            .select_from(Department)
-            .where(Department.organization_id == folder.category.organization_id)
-        )
+        total_query = select(func.count()).select_from(Department).where(Department.organization_id == folder.category.organization_id)
         total_result = await db.execute(total_query)
         total = total_result.scalar_one()
 
@@ -223,15 +240,65 @@ class FolderRepository:
             department_schemas.append(DepartmentWithAssignment(**department_dict))
 
         return PaginationResponse(total=total, items=department_schemas)
-    
+
+    @staticmethod
+    async def get_paginated_users_assigned_to_folder(db: AsyncSession, folder_id: str, pagination: PaginationParams) -> PaginationResponse:
+        from models.user import User
+
+        folder_query = select(Folder).options(selectinload(Folder.category)).where(Folder.id == folder_id)
+        folder_result = await db.execute(folder_query)
+        folder = folder_result.scalar_one_or_none()
+
+        if not folder:
+            return PaginationResponse(total=0, items=[])
+
+        query = (
+            select(User)
+            .where(User.additional_organizations.any(Organization.id == folder.category.organization_id))
+            .add_columns(
+                exists(
+                    select(1)
+                    .select_from(folder_user_permissions)  # Zmień na folder_user_permissions
+                    .where(
+                        folder_user_permissions.c.folder_id == folder_id,  # Zmień na folder_user_permissions.c
+                        folder_user_permissions.c.user_id == User.id,  # Zmień na folder_user_permissions.c
+                    )
+                ).label("is_assigned")
+            )
+        )
+
+        total_query = (
+            select(func.count()).select_from(User).where(User.additional_organizations.any(Organization.id == folder.category.organization_id))
+        )
+        total_result = await db.execute(total_query)
+        total = total_result.scalar_one()
+
+        if pagination.ordering:
+            ordering_column = getattr(User, pagination.ordering, None)
+            if ordering_column is not None:
+                query = query.order_by(ordering_column.desc() if pagination.ordering_desc else ordering_column.asc())
+
+        query = query.offset(pagination.offset).limit(pagination.page_size)
+
+        result = await db.execute(query)
+        rows = result.all()
+
+        user_schemas = []
+        for row in rows:
+            user, is_assigned = row
+            user_dict = {column.name: getattr(user, column.name) for column in user.__table__.columns}
+            user_dict["is_assigned"] = is_assigned
+            user_schemas.append(user_dict)
+
+        return PaginationResponse(total=total, items=user_schemas)
+
     @staticmethod
     async def get_all_child_folders(db: AsyncSession, folder_id: str) -> Sequence[Folder]:
         folder = await FolderRepository.get_by_id_with_category(db, folder_id)
-        
+
         if not folder:
             return []
 
         query = select(Folder).where(Folder.category_id == folder.category_id, Folder.path.descendant_of(folder.path))
         result = await db.execute(query)
         return result.scalars().all()
-    

@@ -1,8 +1,10 @@
 import type { ContentItem } from "@/types/categoryContent";
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router";
+import CategoryService from "@/services/categoryService";
+import { handleApiError } from "@/utils/errorHandler";
 
-const useCategoryPageState = () => {
+const useCategoryPageState = (categoryId?: string) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const searchQuery = searchParams.get("q") || "";
@@ -14,20 +16,22 @@ const useCategoryPageState = () => {
     { id: null, name: "Root" },
   ]);
 
-  useMemo(() => {
-    if (!currentFolderId) {
-      setFolderHistory([{ id: null, name: "Root" }]);
-    } else {
-      if (folderHistory[folderHistory.length - 1]?.id !== currentFolderId) {
-        const existingIndex = folderHistory.findIndex((f) => f.id === currentFolderId);
-        if (existingIndex !== -1) {
-          setFolderHistory(folderHistory.slice(0, existingIndex + 1));
-        } else {
-          setFolderHistory([...folderHistory, { id: currentFolderId, name: currentFolderId }]);
+  useEffect(() => {
+    const loadBreadcrumb = async () => {
+      if (currentFolderId && categoryId) {
+        try {
+          const breadcrumb = await CategoryService.getFolderBreadcrumb(categoryId, currentFolderId);
+          setFolderHistory(breadcrumb);
+        } catch (err: any) {
+          handleApiError(err);
         }
+      } else if (!currentFolderId) {
+        setFolderHistory([{ id: null, name: "Root" }]);
       }
-    }
-  }, [currentFolderId]);
+    };
+
+    loadBreadcrumb();
+  }, [currentFolderId, categoryId]);
 
   const navigateToFolder = useCallback(
     (folderId: string, folderName: string) => {

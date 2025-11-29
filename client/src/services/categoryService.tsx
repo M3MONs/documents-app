@@ -32,4 +32,11 @@ export default class CategoryService {
         });
         return response.data;
     };
+
+    static getFolderBreadcrumb = async (categoryId: string, folderId: string) => {
+        const response = await apiClient.get(`${URL}/${categoryId}/folder-breadcrumb`, {
+            params: { folder_id: folderId },
+        });
+        return response.data;
+    };
 }

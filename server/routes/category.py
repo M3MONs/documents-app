@@ -35,3 +35,18 @@ async def get_category_content_in_folder(
         raise HTTPException(status_code=404, detail="Category not found")
     
     return await CategoryService.get_category_content_in_folder(db, category_id, folder_id, pagination, str(current_user.id))
+
+
+@router.get("/{category_id}/folder-breadcrumb", response_model=list[dict])
+async def get_folder_breadcrumb(
+    category_id: str,
+    folder_id: str = Query(..., description="ID of the folder"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[dict]:
+    category = await CategoryService.get_category_by_id(db, category_id)
+    
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    return await CategoryService.get_folder_breadcrumb(db, folder_id)

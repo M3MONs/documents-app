@@ -31,7 +31,7 @@ const CategoryPage = () => {
     selectedDocument,
     setSelectedDocument,
     inputRef,
-  } = useCategoryPageState();
+  } = useCategoryPageState(categoryId);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 

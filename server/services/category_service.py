@@ -216,3 +216,15 @@ class CategoryService:
                 total_pages=total_pages,
             ),
         )
+
+    @staticmethod
+    async def get_folder_breadcrumb(db: AsyncSession, folder_id: str) -> list[dict]:
+        from repositories.folder_repository import FolderRepository
+
+        hierarchy = await FolderRepository.get_folder_hierarchy(db, folder_id)
+        
+        breadcrumb = [{"id": None, "name": "Root"}]
+        for folder in hierarchy:
+            breadcrumb.append({"id": str(folder.id), "name": str(folder.name)})
+        
+        return breadcrumb

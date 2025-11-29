@@ -302,3 +302,29 @@ class FolderRepository:
         query = select(Folder).where(Folder.category_id == folder.category_id, Folder.path.descendant_of(folder.path))
         result = await db.execute(query)
         return result.scalars().all()
+
+    @staticmethod
+    async def get_folder_hierarchy(db: AsyncSession, folder_id: str) -> Sequence[Folder]:
+        folder = await FolderRepository.get_by_id_with_category(db, folder_id)
+        
+        if not folder:
+            return []
+        
+        if folder.path is None:
+            return [folder]
+        
+        path_str = str(folder.path)
+        path_parts = path_str.split('.')
+        
+        ancestor_paths = []
+        for i in range(len(path_parts)):
+            ancestor_path = '.'.join(path_parts[:i+1])
+            ancestor_paths.append(Ltree(ancestor_path))
+        
+        query = select(Folder).where(
+            Folder.category_id == folder.category_id,
+            Folder.path.in_(ancestor_paths)
+        ).order_by(Folder.path)
+        
+        result = await db.execute(query)
+        return result.scalars().all()

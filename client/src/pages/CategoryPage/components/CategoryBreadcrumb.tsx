@@ -6,6 +6,7 @@ import {
     BreadcrumbPage,
     BreadcrumbLink,
 } from "@/components/ui/breadcrumb";
+import { capitalize } from "@/utils/helpers";
 
 interface CategoryBreadcrumbProps {
     folderHistory: { id: string | null; name: string }[];
@@ -21,14 +22,14 @@ const CategoryBreadcrumb = ({ folderHistory, handleBreadcrumbClick }: CategoryBr
                         {index > 0 && <BreadcrumbSeparator />}
                         <BreadcrumbItem>
                             {index === folderHistory.length - 1 ? (
-                                <BreadcrumbPage>{item.name}</BreadcrumbPage>
+                                <BreadcrumbPage>{index === 0 ? capitalize(item.name) : item.name}</BreadcrumbPage>
                             ) : (
                                 <BreadcrumbLink asChild>
                                     <button
                                         onClick={() => handleBreadcrumbClick(index)}
                                         className="cursor-pointer hover:text-foreground transition-colors"
                                     >
-                                        {item.name}
+                                        {index === 0 ? capitalize(item.name) : item.name}
                                     </button>
                                 </BreadcrumbLink>
                             )}

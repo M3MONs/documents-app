@@ -19,7 +19,9 @@ class DocumentRepository:
 
     @staticmethod
     async def get_by_id_with_category(db: AsyncSession, document_id: str) -> Optional[Document]:
-        result = await db.execute(select(Document).where(Document.id == document_id).options(selectinload(Document.category)))
+        result = await db.execute(
+            select(Document).where(Document.id == document_id).options(selectinload(Document.category))
+        )
         return result.scalar_one_or_none()
 
     @staticmethod
@@ -31,7 +33,11 @@ class DocumentRepository:
 
     @staticmethod
     async def count_documents_by_folder(
-        db: AsyncSession, category_id: str, folder_id: str | None, filter_field: Optional[str] = None, filter_value: Optional[str] = None
+        db: AsyncSession,
+        category_id: str,
+        folder_id: str | None,
+        filter_field: Optional[str] = None,
+        filter_value: Optional[str] = None,
     ) -> int:
         from sqlalchemy import func
 
@@ -112,3 +118,97 @@ class DocumentRepository:
                     return False
 
         return True
+
+    @staticmethod
+    async def search_documents_recursive_with_permissions(
+        db: AsyncSession,
+        category_id: str,
+        user_id: str,
+        user_department_ids: list[str],
+        is_superuser: bool,
+        search_query: str,
+        parent_folder_id: str | None = None,
+        skip: int = 0,
+        limit: int = 20,
+        ordering: Optional[str] = None,
+        ordering_desc: bool = False,
+    ) -> tuple[Sequence[Document], int]:
+        from sqlalchemy import or_, and_, literal, func
+        from models.folder import Folder, folder_user_permissions, folder_department_permissions
+        from repositories.folder_repository import FolderRepository
+
+        base_conditions = [Document.category_id == category_id]
+
+        if search_query:
+            base_conditions.append(Document.name.ilike(f"%{search_query}%"))
+
+        if parent_folder_id:
+            parent_folder = await FolderRepository.get_by_id_with_category(db, parent_folder_id)
+            if parent_folder and parent_folder.path is not None:
+                subtree_folder_ids_query = select(Folder.id).where(
+                    Folder.category_id == category_id, Folder.path.descendant_of(parent_folder.path)
+                )
+                base_conditions.append(
+                    or_(Document.folder_id.in_(subtree_folder_ids_query), Document.folder_id == parent_folder_id)
+                )
+
+        if not is_superuser:
+            folder_not_private = (
+                select(literal(1))
+                .select_from(Folder)
+                .where(
+                    Folder.id == Document.folder_id,
+                    Folder.is_private == False,  # noqa: E712
+                )
+                .exists()
+            )
+
+            user_assigned_to_folder = (
+                select(literal(1))
+                .select_from(folder_user_permissions)
+                .where(
+                    folder_user_permissions.c.folder_id == Document.folder_id,
+                    folder_user_permissions.c.user_id == user_id,
+                )
+                .exists()
+            )
+
+            permission_conditions = [
+                Document.folder_id == None,  # noqa: E711
+                folder_not_private,
+                user_assigned_to_folder,
+            ]
+
+            if user_department_ids:
+                dept_assigned_to_folder = (
+                    select(literal(1))
+                    .select_from(folder_department_permissions)
+                    .where(
+                        folder_department_permissions.c.folder_id == Document.folder_id,
+                        folder_department_permissions.c.department_id.in_(user_department_ids),
+                    )
+                    .exists()
+                )
+                permission_conditions.append(dept_assigned_to_folder)
+
+            base_conditions.append(or_(*permission_conditions))
+
+        count_query = select(func.count(Document.id)).where(and_(*base_conditions))
+        count_result = await db.execute(count_query)
+        total = count_result.scalar() or 0
+
+        query = select(Document).where(and_(*base_conditions))
+
+        if ordering:
+            order_column = getattr(Document, ordering, Document.name)
+            if ordering_desc:
+                query = query.order_by(order_column.desc())
+            else:
+                query = query.order_by(order_column)
+        else:
+            query = query.order_by(Document.name)
+
+        query = query.offset(skip).limit(limit)
+        result = await db.execute(query)
+
+        return result.scalars().all(), total

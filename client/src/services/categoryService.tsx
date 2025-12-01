@@ -14,12 +14,14 @@ export default class CategoryService {
     static getCategoryContent = async (
         categoryId: string,
         folderId: string | null,
-        pagination: PaginationParams
+        pagination: PaginationParams,
+        search?: string
     ) => {
         const params = {
             page: pagination.page,
             page_size: pagination.pageSize,
             folder_id: folderId || undefined,
+            ...(search && { search }),
             ...(pagination.organization_id && { organization_id: pagination.organization_id }),
             ...(pagination.ordering && { ordering: pagination.ordering }),
             ...(pagination.ordering_desc !== undefined && { ordering_desc: pagination.ordering_desc }),

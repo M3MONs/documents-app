@@ -24,4 +24,5 @@ export interface ContentItem {
     name: string;
     type: "folder" | "document";
     mime_type?: string;
+    is_private?: boolean;
 }

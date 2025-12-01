@@ -11,6 +11,11 @@ export default class CategoryService {
         return response.data;
     };
 
+    static getCategory = async (categoryId: string) => {
+        const response = await apiClient.get(`${URL}/${categoryId}`);
+        return response.data;
+    };
+
     static getCategoryContent = async (
         categoryId: string,
         folderId: string | null,

@@ -328,3 +328,79 @@ class FolderRepository:
         
         result = await db.execute(query)
         return result.scalars().all()
+
+    @staticmethod
+    async def search_folders_recursive_with_permissions(
+        db: AsyncSession,
+        category_id: str,
+        user_id: str,
+        user_department_ids: list[str],
+        is_superuser: bool,
+        search_query: str,
+        parent_folder_id: str | None = None,
+        skip: int = 0,
+        limit: int = 20,
+        ordering: Optional[str] = None,
+        ordering_desc: bool = False,
+    ) -> tuple[Sequence[Folder], int]:
+        from sqlalchemy import or_, and_, literal
+        
+        base_conditions = [Folder.category_id == category_id]
+        
+        if parent_folder_id:
+            parent_folder = await FolderRepository.get_by_id_with_category(db, parent_folder_id)
+            if parent_folder and parent_folder.path is not None:
+                base_conditions.append(Folder.path.descendant_of(parent_folder.path))
+        
+        if search_query:
+            base_conditions.append(Folder.name.ilike(f"%{search_query}%"))
+        
+        if not is_superuser:
+            permission_conditions = [
+                Folder.is_private == False,  # noqa: E712
+            ]
+            
+            user_assigned_subquery = (
+                select(literal(1))
+                .select_from(folder_user_permissions)
+                .where(
+                    folder_user_permissions.c.folder_id == Folder.id,
+                    folder_user_permissions.c.user_id == user_id,
+                )
+                .exists()
+            )
+            permission_conditions.append(user_assigned_subquery)
+            
+            if user_department_ids:
+                dept_assigned_subquery = (
+                    select(literal(1))
+                    .select_from(folder_department_permissions)
+                    .where(
+                        folder_department_permissions.c.folder_id == Folder.id,
+                        folder_department_permissions.c.department_id.in_(user_department_ids),
+                    )
+                    .exists()
+                )
+                permission_conditions.append(dept_assigned_subquery)
+            
+            base_conditions.append(or_(*permission_conditions))
+        
+        count_query = select(func.count(Folder.id)).where(and_(*base_conditions))
+        count_result = await db.execute(count_query)
+        total = count_result.scalar() or 0
+        
+        query = select(Folder).where(and_(*base_conditions))
+        
+        if ordering:
+            order_column = getattr(Folder, ordering, Folder.name)
+            if ordering_desc:
+                query = query.order_by(order_column.desc())
+            else:
+                query = query.order_by(order_column)
+        else:
+            query = query.order_by(Folder.name)
+        
+        query = query.offset(skip).limit(limit)
+        result = await db.execute(query)
+        
+        return result.scalars().all(), total

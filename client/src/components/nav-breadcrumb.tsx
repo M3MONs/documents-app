@@ -19,16 +19,20 @@ const NavBreadcrumb = () => {
                     const to = `/${pathnames.slice(0, index + 1).join("/")}`;
                     const name = value.charAt(0).toUpperCase() + value.slice(1);
 
+                    const shouldCreateLink = value !== "categories";
+
                     return (
                         <React.Fragment key={to}>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
                                 {last ? (
                                     <BreadcrumbPage>{name}</BreadcrumbPage>
-                                ) : (
+                                ) : shouldCreateLink ? (
                                     <BreadcrumbLink asChild>
                                         <Link to={to}>{name}</Link>
                                     </BreadcrumbLink>
+                                ) : (
+                                    <BreadcrumbPage>{name}</BreadcrumbPage>
                                 )}
                             </BreadcrumbItem>
                         </React.Fragment>

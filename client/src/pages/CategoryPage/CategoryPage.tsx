@@ -43,7 +43,7 @@ const CategoryPage = () => {
 
   const { data, isLoading, error } = useCategoryContent({
     categoryId: categoryId || "",
-    folderId: currentFolderId,
+    folderId: debouncedSearchQuery.trim() ? null : currentFolderId,
     searchQuery: debouncedSearchQuery.trim() || undefined,
     page,
   });

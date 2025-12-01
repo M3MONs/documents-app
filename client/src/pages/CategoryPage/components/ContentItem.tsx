@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Folder } from "lucide-react";
+import { Folder, Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ContentItem as ContentItemType } from "@/types/categoryContent";
 import {
@@ -40,7 +40,10 @@ const ContentItem = memo(({ item, canManageCategory, onItemClick, onManageClick 
             <CardContent className="flex items-center justify-between py-3 px-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                     {isFolder ? (
-                        <Folder className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                        <>
+                            {item.is_private && <Lock className="h-5 w-5 text-muted-foreground flex-shrink-0" />}
+                            <Folder className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                        </>
                     ) : (
                         <FileIcon mimeType={item.mime_type} />
                     )}

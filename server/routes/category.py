@@ -21,6 +21,20 @@ async def list_categories(
     return await CategoryService.get_categories_for_user_in_organization(db, str(current_user.id), organization_id)
 
 
+@router.get("/{category_id}", response_model=CategorySchema)
+async def get_category(
+    category_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> CategorySchema:
+    category = await CategoryService.get_category_for_user(db, category_id, str(current_user.id))
+    
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    return CategorySchema.model_validate(category)
+
+
 @router.get("/{category_id}/content", response_model=CategoryContentResponse)
 async def get_category_content_in_folder(
     category_id: str,
@@ -30,7 +44,7 @@ async def get_category_content_in_folder(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CategoryContentResponse | None:
-    category = await CategoryService.get_category_by_id(db, category_id)
+    category = await CategoryService.get_category_for_user(db, category_id, str(current_user.id))
     
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -47,9 +61,9 @@ async def get_folder_breadcrumb(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[dict]:
-    category = await CategoryService.get_category_by_id(db, category_id)
+    category = await CategoryService.get_category_for_user(db, category_id, str(current_user.id))
     
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    return await CategoryService.get_folder_breadcrumb(db, folder_id)
+    return await CategoryService.get_folder_breadcrumb(db, category, folder_id)

@@ -23,7 +23,6 @@ createRoot(document.getElementById("root")!).render(
                         <Routes>
                             <Route element={<ProtectedRoute />}>
                                 <Route path="/" element={<HomePage />} />
-                                <Route path="/categories" element={<CategoryPage />} />
                                 <Route path="/categories/:categoryId" element={<CategoryPage />} />
                             </Route>
 

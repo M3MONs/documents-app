@@ -25,6 +25,7 @@ async def list_categories(
 async def get_category_content_in_folder(
     category_id: str,
     folder_id: str | None = Query(None, description="ID of the folder"),
+    search: str | None = Query(None, description="Search query for recursive search in folder/document names"),
     pagination: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -34,7 +35,9 @@ async def get_category_content_in_folder(
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    return await CategoryService.get_category_content_in_folder(db, category_id, folder_id, pagination, str(current_user.id))
+    return await CategoryService.get_category_content_in_folder(
+        db, category_id, folder_id, pagination, str(current_user.id), search_query=search
+    )
 
 
 @router.get("/{category_id}/folder-breadcrumb", response_model=list[dict])

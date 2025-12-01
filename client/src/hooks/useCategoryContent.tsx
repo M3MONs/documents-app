@@ -27,13 +27,13 @@ export const useCategoryContent = ({
         page,
         pageSize,
         organization_id: selectedOrganization?.id,
-        ...(searchQuery && { filter_field: "name", filter_value: searchQuery }),
       };
 
       return CategoryService.getCategoryContent(
         categoryId,
         folderId || null,
-        paginationParams
+        paginationParams,
+        searchQuery
       );
     },
     enabled: !!categoryId && !!selectedOrganization,

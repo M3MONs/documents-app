@@ -70,6 +70,10 @@ class CategoryService:
         return await BaseRepository.get_by_id(Category, db, category_id)
 
     @staticmethod
+    async def get_category_for_user(db: AsyncSession, category_id: str, user_id: str) -> Category | None:
+        return await CategoryRepository.get_category_for_user(db, category_id, user_id)
+
+    @staticmethod
     async def delete_category(db: AsyncSession, category_id: str) -> None:
         category = await BaseRepository.get_by_id(Category, db, category_id)
 
@@ -280,12 +284,12 @@ class CategoryService:
         )
 
     @staticmethod
-    async def get_folder_breadcrumb(db: AsyncSession, folder_id: str) -> list[dict]:
+    async def get_folder_breadcrumb(db: AsyncSession, category, folder_id: str) -> list[dict]:
         from repositories.folder_repository import FolderRepository
 
         hierarchy = await FolderRepository.get_folder_hierarchy(db, folder_id)
 
-        breadcrumb = [{"id": None, "name": "Root"}]
+        breadcrumb = [{"id": None, "name": category.name}]
         for folder in hierarchy:
             breadcrumb.append({"id": str(folder.id), "name": str(folder.name)})
 

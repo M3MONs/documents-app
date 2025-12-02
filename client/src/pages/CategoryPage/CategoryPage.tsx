@@ -11,9 +11,12 @@ import ContentList from "./components/ContentList";
 import ErrorAlert from "../../components/atoms/ErrorAlert";
 import useCategoryPageState from "@/hooks/useCategoryPageState";
 import FolderManageDialog from "./components/Manager/FolderManageDialog";
+import { useAuth } from "@/context/AuthContext";
+import { StaticRoles } from "@/constants/roles";
 
 const CategoryPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
+  const { user } = useAuth();
   const [selectedFolder, setSelectedFolder] = useState<ContentItem | null>(null);
 
   const {
@@ -48,6 +51,12 @@ const CategoryPage = () => {
     page,
   });
 
+  const canManageCategory = useMemo(() => {
+    if (user?.is_superuser) return true;
+    if (!categoryId) return false;
+    return !!user?.organization_roles?.[categoryId]?.includes(StaticRoles.CATEGORIES_MANAGER.name);
+  }, [user, categoryId]);
+
   const combinedContent = useMemo(() => {
     if (!data) return [];
 
@@ -77,6 +86,8 @@ const CategoryPage = () => {
 
     return items;
   }, [data]);
+
+  const handleAddDocument = useCallback(() => {}, []);
 
   const handleItemClick = useCallback(
     (item: ContentItem) => {
@@ -118,6 +129,8 @@ const CategoryPage = () => {
           folderHistory={folderHistory}
           searchQuery={searchQuery}
           isFocused={isFocused}
+          canAddDocument={canManageCategory}
+          onAddDocument={handleAddDocument}
           onSearchChange={setSearchQuery}
           onFocusChange={setIsFocused}
           onBreadcrumbClick={handleBreadcrumbClick}
@@ -129,6 +142,7 @@ const CategoryPage = () => {
         <ContentList
           items={combinedContent}
           isLoading={isLoading}
+          canManageCategory={canManageCategory || false}
           searchQuery={searchQuery}
           currentPage={page}
           pagination={data?.pagination}

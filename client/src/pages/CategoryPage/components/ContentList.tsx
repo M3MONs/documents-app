@@ -7,6 +7,7 @@ import PaginationControls from "./PaginationControls";
 import type { ContentItem as ContentItemType } from "@/types/categoryContent";
 import { useAuth } from "@/context/AuthContext";
 import { StaticRoles } from "@/constants/roles";
+import { useParams } from "react-router";
 
 interface ContentListProps {
     items: ContentItemType[];
@@ -40,11 +41,16 @@ const ContentList = memo(
         onPreviousPage,
         onNextPage,
     }: ContentListProps) => {
+        const { categoryId } = useParams<{ categoryId: string }>();
         const { user } = useAuth();
 
         const canManageCategory = useMemo(
-            () => user?.is_superuser || user?.roles?.includes(StaticRoles.CATEGORIES_MANAGER.name),
-            [user]
+            () => {
+                if (user?.is_superuser) return true;
+                if (!categoryId) return false;
+                return !!user?.organization_roles?.[categoryId]?.includes(StaticRoles.CATEGORIES_MANAGER.name);
+            },
+            [user, categoryId]
         );
 
         const handleItemClick = useCallback(

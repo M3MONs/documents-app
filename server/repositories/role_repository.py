@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.role import Role
@@ -10,7 +11,7 @@ class RoleRepository:
         return result.scalars().first()
     
     @staticmethod
-    async def is_user_in_role(db: AsyncSession, user_id: str, role_name: str) -> bool:
+    async def is_user_in_role(db: AsyncSession, user_id: uuid.UUID, role_name: str) -> bool:
         result = await db.execute(
             select(Role)
             .join(Role.users)

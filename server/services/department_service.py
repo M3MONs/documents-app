@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.department import Department
@@ -10,13 +11,13 @@ from services.user_service import UserService
 
 class DepartmentService:
     @staticmethod
-    async def get_department_by_id(db: AsyncSession, department_id: str) -> Department | None:
+    async def get_department_by_id(db: AsyncSession, department_id: uuid.UUID) -> Department | None:
         result = await BaseRepository.get_by_id(Department, db, department_id)
         return result
 
     @staticmethod
     async def get_paginated_departments(
-        db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | None = None
+        db: AsyncSession, pagination: PaginationParams, organization_ids: list[uuid.UUID] | None = None
     ) -> PaginationResponse:
         return await BaseRepository.get_paginated(
             model=Department,
@@ -39,13 +40,13 @@ class DepartmentService:
         return department
 
     @staticmethod
-    async def delete_department(db: AsyncSession, department_id: str) -> None:
+    async def delete_department(db: AsyncSession, department_id: uuid.UUID) -> None:
         department = await BaseRepository.get_by_id(Department, db, department_id)
         if department:
             await BaseRepository.delete(model=Department, db=db, entity_id=str(department.id))
 
     @staticmethod
-    async def update_department(db: AsyncSession, department_id: str, payload) -> None:
+    async def update_department(db: AsyncSession, department_id: uuid.UUID, payload) -> None:
         department = await BaseRepository.get_by_id(model=Department, db=db, entity_id=department_id)
 
         for field, value in payload.dict(exclude_unset=True).items():
@@ -58,17 +59,17 @@ class DepartmentService:
         return await DepartmentRepository.get_by_name(db, name) is None
 
     @staticmethod
-    async def validate_department_update(db: AsyncSession, department_id: str, new_name: str) -> bool:
+    async def validate_department_update(db: AsyncSession, department_id: uuid.UUID, new_name: str) -> bool:
         return await DepartmentRepository.validate_unique_name_on_update(db, department_id, new_name)
 
     @staticmethod
     async def get_paginated_users_with_assignment(
-        db: AsyncSession, department_id: str, pagination
+        db: AsyncSession, department_id: uuid.UUID, pagination
     ) -> PaginationResponse:
         return await DepartmentRepository.get_paginated_users_with_assignment(db, department_id, pagination)
 
     @staticmethod
-    async def assign_user_to_department(db: AsyncSession, user_id: str, department_id: str) -> None:
+    async def assign_user_to_department(db: AsyncSession, user_id: uuid.UUID, department_id: uuid.UUID) -> None:
         department = await DepartmentService.get_department_by_id(db, department_id)
         if not department:
             raise ValueError(f"Department with id {department_id} not found")
@@ -77,16 +78,17 @@ class DepartmentService:
         if not user:
             raise ValueError(f"User with id {user_id} not found")
 
-        is_assigned_to_org = str(user.primary_organization_id) == str(department.organization_id) or any(
-            str(org.id) == str(department.organization_id) for org in user.additional_organizations
+        is_assigned_to_org = user.primary_organization_id == department.organization_id or any(
+            org.id == department.organization_id for org in user.additional_organizations
         )
-        if not is_assigned_to_org:
+
+        if not bool(is_assigned_to_org):
             raise ValueError(f"User {user_id} is not assigned to organization {department.organization_id}")
 
         await DepartmentRepository.assign_user_to_department(db, user_id, department_id)
 
     @staticmethod
-    async def unassign_user_from_department(db: AsyncSession, user_id: str, department_id: str) -> None:
+    async def unassign_user_from_department(db: AsyncSession, user_id: uuid.UUID, department_id: uuid.UUID) -> None:
         is_assigned = await DepartmentRepository.is_user_assigned(db, user_id, department_id)
 
         if not is_assigned:
@@ -95,6 +97,6 @@ class DepartmentService:
         await DepartmentRepository.unassign_user_from_department(db, user_id, department_id)
 
     @staticmethod
-    async def is_department_name_unique_by_organization(db: AsyncSession, organization_id: str, name: str) -> bool:
+    async def is_department_name_unique_by_organization(db: AsyncSession, organization_id: uuid.UUID, name: str) -> bool:
         department = await DepartmentRepository.get_by_name_and_organization(db, name, organization_id)
         return department is None

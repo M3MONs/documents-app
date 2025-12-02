@@ -8,20 +8,15 @@ from models.user import User, user_organizations
 class OrganizationRepository:
     @staticmethod
     async def get_paginated_users_with_assignment(
-        db: AsyncSession, organization_id: str, pagination: PaginationParams
+        db: AsyncSession, organization_id: uuid.UUID, pagination: PaginationParams
     ) -> PaginationResponse:
         from schemas.admin import UserWithAssignment
         
-        try:
-            org_uuid = uuid.UUID(organization_id)
-        except ValueError:
-            raise ValueError(f"Invalid UUID format for organization_id: {organization_id}")
-        
         query = select(User).outerjoin(
             user_organizations,
-            (user_organizations.c.user_id == User.id) & (user_organizations.c.organization_id == org_uuid)
+            (user_organizations.c.user_id == User.id) & (user_organizations.c.organization_id == organization_id)
         ).add_columns(
-            (User.primary_organization_id == org_uuid) | (user_organizations.c.organization_id.isnot(None))
+            (User.primary_organization_id == organization_id) | (user_organizations.c.organization_id.isnot(None))
         )
 
         total_query = select(func.count()).select_from(query.subquery())
@@ -43,7 +38,7 @@ class OrganizationRepository:
             user, is_assigned = row
             user_dict = UserWithAssignment.model_validate(user).dict()
             user_dict['is_assigned'] = is_assigned
-            user_dict['is_primary'] = user.primary_organization_id == org_uuid
+            user_dict['is_primary'] = user.primary_organization_id == organization_id
             user_schemas.append(UserWithAssignment(**user_dict))
 
         return PaginationResponse(total=total, items=user_schemas)

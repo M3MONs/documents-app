@@ -1,6 +1,7 @@
 from pathlib import Path
 import shutil
 from typing import Sequence
+import uuid
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -20,9 +21,7 @@ CATEGORY_MEDIA_ROOT = Path(settings.MEDIA_ROOT) / "categories"
 
 class CategoryService:
     @staticmethod
-    async def get_categories_for_user_in_organization(
-        db: AsyncSession, user_id: str, organization_id: str
-    ) -> Sequence[CategorySchema]:
+    async def get_categories_for_user_in_organization(db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID) -> Sequence[CategorySchema]:
         categories = await CategoryRepository.get_categories_for_user_in_organization(db, user_id, organization_id)
         return [CategorySchema.model_validate(category) for category in categories]
 
@@ -32,7 +31,7 @@ class CategoryService:
         await BaseRepository.create_flush(db, category)
 
         try:
-            CategoryService._create_category_dir(str(category.id))
+            CategoryService._create_category_dir(category.id)  # type: ignore
         except FileExistsError:
             await db.rollback()
             raise HTTPException(status_code=400, detail="Category directory already exists.")
@@ -45,12 +44,12 @@ class CategoryService:
         return CategorySchema.model_validate(category)
 
     @staticmethod
-    async def is_category_name_unique_in_organization(db: AsyncSession, organization_id: str, name: str) -> bool:
+    async def is_category_name_unique_in_organization(db: AsyncSession, organization_id: uuid.UUID, name: str) -> bool:
         return await CategoryRepository.is_unique_category_name_in_organization(db, organization_id, name)
 
     @staticmethod
     async def get_paginated_categories(
-        db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | None = None
+        db: AsyncSession, pagination: PaginationParams, organization_ids: list[str]| list[uuid.UUID] | None = None
     ) -> PaginationResponse:
         return await BaseRepository.get_paginated(
             model=Category,
@@ -66,15 +65,15 @@ class CategoryService:
         )
 
     @staticmethod
-    async def get_category_by_id(db: AsyncSession, category_id: str) -> Category | None:
+    async def get_category_by_id(db: AsyncSession, category_id: uuid.UUID) -> Category | None:
         return await BaseRepository.get_by_id(Category, db, category_id)
 
     @staticmethod
-    async def get_category_for_user(db: AsyncSession, category_id: str, user_id: str) -> Category | None:
+    async def get_category_for_user(db: AsyncSession, category_id: uuid.UUID, user_id: uuid.UUID) -> Category | None:
         return await CategoryRepository.get_category_for_user(db, category_id, user_id)
 
     @staticmethod
-    async def delete_category(db: AsyncSession, category_id: str) -> None:
+    async def delete_category(db: AsyncSession, category_id: uuid.UUID) -> None:
         category = await BaseRepository.get_by_id(Category, db, category_id)
 
         if category is None:
@@ -83,7 +82,7 @@ class CategoryService:
         await BaseRepository.delete(Category, db, category_id)
 
         try:
-            CategoryService._delete_category_dir(str(category.id))
+            CategoryService._delete_category_dir(category.id)  # type: ignore
         except FileNotFoundError:
             pass  # If the directory does not exist, we can ignore this error
         except Exception as e:
@@ -91,11 +90,11 @@ class CategoryService:
             raise HTTPException(status_code=500, detail=f"Failed to delete category directory: {str(e)}")
 
     @staticmethod
-    async def validate_unique_name_on_update(db: AsyncSession, category_id: str, new_name: str) -> bool:
+    async def validate_unique_name_on_update(db: AsyncSession, category_id: uuid.UUID, new_name: str) -> bool:
         return await CategoryRepository.validate_unique_name_on_update(db, category_id, new_name)
 
     @staticmethod
-    async def update_category(db: AsyncSession, category_id: str, payload) -> None:
+    async def update_category(db: AsyncSession, category_id: uuid.UUID, payload) -> None:
         category = await BaseRepository.get_by_id(model=Category, db=db, entity_id=category_id)
 
         for field, value in payload.dict(exclude_unset=True).items():
@@ -104,12 +103,12 @@ class CategoryService:
         await BaseRepository.update(db, category)
 
     @staticmethod
-    def _create_category_dir(category_id: str) -> None:
+    def _create_category_dir(category_id: uuid.UUID) -> None:
         CATEGORY_MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
         (CATEGORY_MEDIA_ROOT / str(category_id)).mkdir(exist_ok=False)
 
     @staticmethod
-    def _delete_category_dir(category_id: str) -> None:
+    def _delete_category_dir(category_id: uuid.UUID) -> None:
         category_path = CATEGORY_MEDIA_ROOT / str(category_id)
 
         if category_path.exists() and category_path.is_dir():
@@ -118,11 +117,11 @@ class CategoryService:
             raise FileNotFoundError(f"Category directory {category_path} does not exist.")
 
     @staticmethod
-    async def get_departments_for_category(db: AsyncSession, category_id: str) -> Sequence[Department]:
+    async def get_departments_for_category(db: AsyncSession, category_id: uuid.UUID) -> Sequence[Department]:
         return await CategoryRepository.get_departments_for_category(db, category_id)
 
     @staticmethod
-    async def assign_department_to_category(db: AsyncSession, category_id: str, department_id: str) -> None:
+    async def assign_department_to_category(db: AsyncSession, category_id: uuid.UUID, department_id: uuid.UUID) -> None:
         category = await CategoryService.get_category_by_id(db, category_id)
         if not category:
             raise ValueError(f"Category with id {category_id} not found")
@@ -140,7 +139,7 @@ class CategoryService:
         await CategoryRepository.assign_department_to_category(db, category_id, department_id)
 
     @staticmethod
-    async def unassign_department_from_category(db: AsyncSession, category_id: str, department_id: str) -> None:
+    async def unassign_department_from_category(db: AsyncSession, category_id: uuid.UUID, department_id: uuid.UUID) -> None:
         is_assigned = await CategoryRepository.is_department_assigned_to_category(db, category_id, department_id)
         if not is_assigned:
             raise ValueError(f"Department {department_id} is not assigned to category {category_id}")
@@ -148,18 +147,16 @@ class CategoryService:
         await CategoryRepository.unassign_department_from_category(db, category_id, department_id)
 
     @staticmethod
-    async def get_paginated_departments_with_assignment(
-        db: AsyncSession, category_id: str, pagination: PaginationParams
-    ) -> PaginationResponse:
+    async def get_paginated_departments_with_assignment(db: AsyncSession, category_id: uuid.UUID, pagination: PaginationParams) -> PaginationResponse:
         return await CategoryRepository.get_paginated_departments_with_assignment(db, category_id, pagination)
 
     @staticmethod
     async def get_category_content_in_folder(
         db: AsyncSession,
-        category_id: str,
-        folder_id: str | None,
+        category_id: uuid.UUID,
+        folder_id: uuid.UUID | None,
         pagination: PaginationParams,
-        user_id: str,
+        user_id: uuid.UUID,
         search_query: str | None = None,
     ) -> CategoryContentResponse:
         from repositories.folder_repository import FolderRepository
@@ -170,7 +167,7 @@ class CategoryService:
 
         user = await UserService.get_user_by_id(db, user_id)
         is_superuser = bool(user.is_superuser) if user else False
-        user_department_ids = [str(dept.id) for dept in user.departments] if user else []
+        user_department_ids = [dept.id for dept in user.departments] if user else []
 
         if search_query:
             folders, folder_count = await FolderRepository.search_folders_recursive_with_permissions(
@@ -244,7 +241,7 @@ class CategoryService:
 
         accessible_folders = []
         for folder in folders:
-            if await FolderService.user_has_access_to_folder(db, str(folder.id), user_id):
+            if await FolderService.user_has_access_to_folder(db, folder.id, user_id):  # type: ignore
                 accessible_folders.append(folder)
 
         folders = accessible_folders
@@ -284,7 +281,7 @@ class CategoryService:
         )
 
     @staticmethod
-    async def get_folder_breadcrumb(db: AsyncSession, category, folder_id: str) -> list[dict]:
+    async def get_folder_breadcrumb(db: AsyncSession, category, folder_id: uuid.UUID) -> list[dict]:
         from repositories.folder_repository import FolderRepository
 
         hierarchy = await FolderRepository.get_folder_hierarchy(db, folder_id)

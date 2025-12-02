@@ -11,7 +11,7 @@ from schemas.pagination import PaginationInfo
 class CategoryCreatePayload(BaseModel):
     name: str = Field(..., description="The name for the new category")
     description: str = Field(..., description="The description for the new category")
-    organization_id: str = Field(..., description="The ID of the organization the category belongs to")
+    organization_id: uuid.UUID = Field(..., description="The ID of the organization the category belongs to")
     is_active: bool = Field(..., description="Whether the category is active")
     is_public: bool = Field(..., description="Whether the category is public")
 

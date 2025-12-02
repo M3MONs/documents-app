@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,9 +20,7 @@ from schemas.organization import (
 router = APIRouter(prefix="/admin/organizations", tags=["admin_organizations"])
 
 
-@router.get(
-    "", dependencies=[Depends(RoleChecker([StaticRole.USER_MANAGER.name_value]))], response_model=PaginationResponse
-)
+@router.get("", dependencies=[Depends(RoleChecker([StaticRole.USER_MANAGER.name_value]))], response_model=PaginationResponse)
 async def get_organizations_paginated(
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(),
@@ -34,7 +33,7 @@ async def get_organizations_paginated(
 
 
 @router.delete("/{organization_id}", dependencies=[Depends(RoleChecker([]))])
-async def delete_organization(organization_id: str, db: AsyncSession = Depends(get_db)) -> None:
+async def delete_organization(organization_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
     organization = await OrganizationService.get_organization_by_id(db, organization_id)
 
     if not organization:
@@ -44,9 +43,7 @@ async def delete_organization(organization_id: str, db: AsyncSession = Depends(g
 
 
 @router.put("/{organization_id}", dependencies=[Depends(RoleChecker([]))])
-async def edit_organization(
-    organization_id: str, payload: OrganizationEditPayload, db: AsyncSession = Depends(get_db)
-) -> None:
+async def edit_organization(organization_id: uuid.UUID, payload: OrganizationEditPayload, db: AsyncSession = Depends(get_db)) -> None:
     organization = await OrganizationService.get_organization_by_id(db, organization_id)
 
     if not organization:
@@ -59,9 +56,7 @@ async def edit_organization(
 
 
 @router.post("", response_model=OrganizationSchema, dependencies=[Depends(RoleChecker([]))])
-async def create_organization(
-    payload: OrganizationCreatePayload, db: AsyncSession = Depends(get_db)
-) -> OrganizationSchema | None:
+async def create_organization(payload: OrganizationCreatePayload, db: AsyncSession = Depends(get_db)) -> OrganizationSchema | None:
     if not await OrganizationService.is_unique_name(db, payload.name):
         raise HTTPException(status_code=400, detail="Organization name must be unique")
 
@@ -81,7 +76,7 @@ async def create_organization(
     dependencies=[Depends(RoleChecker([StaticRole.USER_MANAGER.name_value], org_param="organization_id"))],
 )
 async def get_organization_users_paginated(
-    organization_id: str,
+    organization_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(),
 ) -> PaginationResponse:
@@ -100,8 +95,8 @@ async def get_organization_users_paginated(
     dependencies=[Depends(RoleChecker([StaticRole.USER_MANAGER.name_value], org_param="organization_id"))],
 )
 async def assign_user_to_organization(
-    organization_id: str,
-    user_id: str,
+    organization_id: uuid.UUID,
+    user_id: uuid.UUID,
     payload: AssignUserPayload,
     db: AsyncSession = Depends(get_db),
 ) -> None:
@@ -121,8 +116,8 @@ async def assign_user_to_organization(
     dependencies=[Depends(RoleChecker([StaticRole.USER_MANAGER.name_value], org_param="organization_id"))],
 )
 async def unassign_user_from_organization(
-    organization_id: str,
-    user_id: str,
+    organization_id: uuid.UUID,
+    user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     organization = await OrganizationService.get_organization_by_id(db, organization_id)

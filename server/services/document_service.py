@@ -1,4 +1,5 @@
 import os
+import uuid
 from core.config import settings
 from repositories.base_repository import BaseRepository
 from repositories.document_repository import DocumentRepository
@@ -11,7 +12,7 @@ from models.user import User
 
 class DocumentService:
     @staticmethod
-    async def get_document_by_id(db: AsyncSession, document_id: str) -> Optional[Document]:
+    async def get_document_by_id(db: AsyncSession, document_id: uuid.UUID) -> Optional[Document]:
         return await BaseRepository.get_by_id(Document, db, document_id)
 
     @staticmethod
@@ -19,7 +20,7 @@ class DocumentService:
         return await DocumentRepository.get_by_file_path(db, file_path)
 
     @staticmethod
-    async def get_all_file_paths(db: AsyncSession, category_id: str) -> set[str]:
+    async def get_all_file_paths(db: AsyncSession, category_id: uuid.UUID) -> set[str]:
         return await DocumentRepository.get_all_file_paths(db, category_id)
 
     @staticmethod
@@ -34,7 +35,7 @@ class DocumentService:
         await DocumentRepository.delete_by_file_path(db, file_path)
 
     @staticmethod
-    async def update_document(db: AsyncSession, document_id: str, payload) -> None:
+    async def update_document(db: AsyncSession, document_id: uuid.UUID, payload) -> None:
         document = await BaseRepository.get_by_id(model=Document, db=db, entity_id=document_id)
 
         for field, value in payload.dict(exclude_unset=True).items():
@@ -52,6 +53,6 @@ class DocumentService:
     
     @staticmethod
     async def is_user_permitted_to_view_document(
-        db: AsyncSession, user: User, document_id: str
+        db: AsyncSession, user: User, document_id: uuid.UUID
     ) -> bool:
         return await DocumentRepository.is_user_permitted_to_view_document(db, user, document_id)

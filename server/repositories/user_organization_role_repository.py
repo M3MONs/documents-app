@@ -1,4 +1,5 @@
 from typing import Sequence
+import uuid
 from sqlalchemy import select, update
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +9,7 @@ from schemas.user_organization_role import UserOrganizationRoleCreatePayload, Us
 
 class UserOrganizationRoleRepository:
     @staticmethod
-    async def get_by_user_and_organization(db: AsyncSession, user_id: str, organization_id: str) -> Sequence[UserOrganizationRole]:
+    async def get_by_user_and_organization(db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID) -> Sequence[UserOrganizationRole]:
         stmt = select(UserOrganizationRole).where(
             UserOrganizationRole.user_id == user_id,
             UserOrganizationRole.organization_id == organization_id
@@ -17,7 +18,7 @@ class UserOrganizationRoleRepository:
         return res.scalars().all()
 
     @staticmethod
-    async def get_by_user(db: AsyncSession, user_id: str) -> Sequence[UserOrganizationRole]:
+    async def get_by_user(db: AsyncSession, user_id: uuid.UUID) -> Sequence[UserOrganizationRole]:
         stmt = select(UserOrganizationRole).where(
             UserOrganizationRole.user_id == user_id
         ).options(joinedload(UserOrganizationRole.role), joinedload(UserOrganizationRole.organization))
@@ -39,7 +40,7 @@ class UserOrganizationRoleRepository:
         return result.scalar_one()
 
     @staticmethod
-    async def update(db: AsyncSession, uor_id: str, payload: UserOrganizationRoleUpdatePayload) -> UserOrganizationRole | None:
+    async def update(db: AsyncSession, uor_id: uuid.UUID, payload: UserOrganizationRoleUpdatePayload) -> UserOrganizationRole | None:
         stmt = update(UserOrganizationRole).where(UserOrganizationRole.id == uor_id).values(**payload.model_dump())
         await db.execute(stmt)
         await db.commit()
@@ -48,7 +49,7 @@ class UserOrganizationRoleRepository:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def delete(db: AsyncSession, uor_id: str) -> bool:
+    async def delete(db: AsyncSession, uor_id: uuid.UUID) -> bool:
         uor = await db.get(UserOrganizationRole, uor_id)
         if uor:
             await db.delete(uor)
@@ -57,7 +58,7 @@ class UserOrganizationRoleRepository:
         return False
 
     @staticmethod
-    async def exists(db: AsyncSession, user_id: str, organization_id: str, role_id: str) -> bool:
+    async def exists(db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID, role_id: uuid.UUID) -> bool:
         stmt = select(UserOrganizationRole).where(
             UserOrganizationRole.user_id == user_id,
             UserOrganizationRole.organization_id == organization_id,

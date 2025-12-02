@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import uuid
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from typing import Optional
@@ -92,7 +93,11 @@ async def get_current_user(
     payload = await validate_access_token(token)
     user_id = payload.get("sub")
 
-    user = await UserService.get_user_by_id(db, str(user_id))
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found in token")
+
+    user = await UserService.get_user_by_id(db, user_id)
+    
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
@@ -134,7 +139,7 @@ class RoleChecker:
                 detail=f"Missing organization identifier '{self.org_param}' for role validation",
             )
 
-        has = await UserRepository.user_has_role_in_organization(db, str(current_user.id), self.required_roles, org_id)
+        has = await UserRepository.user_has_role_in_organization(db, current_user.id, self.required_roles, org_id) # type: ignore
         if has:
             return
 
@@ -147,7 +152,7 @@ class RoleChecker:
         )
 
     @staticmethod
-    async def get_user_organization_ids(db: AsyncSession, current_user: User, required_roles: list[str]) -> list[str]:
+    async def get_user_organization_ids(db: AsyncSession, current_user: User, required_roles: list[str]) -> list[uuid.UUID]:
         if getattr(current_user, "is_superuser", False):
             all_orgs = await OrganizationService.get_paginated_organizations(
                 db,
@@ -155,11 +160,11 @@ class RoleChecker:
                     page=1, page_size=100, ordering="name", ordering_desc=False, filter_field=None, filter_value=None
                 ),
             )
-            return [str(org.id) for org in all_orgs.items]
-
-        user_org_roles = await UserRepository.get_user_organization_roles(db, str(current_user.id))
+            return [org.id for org in all_orgs.items]
+        
+        user_org_roles = await UserRepository.get_user_organization_roles(db, current_user.id) # type: ignore
         accessible_org_ids = set()
         for uor in user_org_roles:
             if uor.role and uor.role.name in required_roles:
-                accessible_org_ids.add(str(uor.organization_id))
+                accessible_org_ids.add(uor.organization_id)
         return list(accessible_org_ids)

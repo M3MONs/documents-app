@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
 from models.user import User
 from repositories.user_repository import UserRepository
 from repositories.base_repository import BaseRepository
@@ -12,7 +13,7 @@ class UserService:
         return await BaseRepository.create(db, user)
 
     @staticmethod
-    async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
+    async def get_user_by_id(db: AsyncSession, user_id: uuid.UUID) -> User | None:
         return await UserRepository.get_user_by_id(db, user_id=user_id)
 
     @staticmethod
@@ -30,9 +31,7 @@ class UserService:
         return user is not None
 
     @staticmethod
-    async def get_paginated_users(
-        db: AsyncSession, pagination: PaginationParams, organization_id: str | None = None
-    ) -> PaginationResponse:
+    async def get_paginated_users(db: AsyncSession, pagination: PaginationParams, organization_id: uuid.UUID | None = None) -> PaginationResponse:
         if organization_id:
             from repositories.organization_repository import OrganizationRepository
 
@@ -50,15 +49,15 @@ class UserService:
             )
 
     @staticmethod
-    async def deactivate_user(db: AsyncSession, user_id: str) -> None:
-        await UserRepository.deactivate_user(db, user_id=user_id)
+    async def deactivate_user(db: AsyncSession, user_id: uuid.UUID) -> None:
+        await UserRepository.deactivate_user(db, user_id)
 
     @staticmethod
-    async def activate_user(db: AsyncSession, user_id: str) -> None:
-        await UserRepository.activate_user(db, user_id=user_id)
+    async def activate_user(db: AsyncSession, user_id: uuid.UUID) -> None:
+        await UserRepository.activate_user(db, user_id)
 
     @staticmethod
-    async def reset_user_password(db: AsyncSession, user_id: str, new_password: str) -> None:
+    async def reset_user_password(db: AsyncSession, user_id: uuid.UUID, new_password: str) -> None:
         from core.security import hash_password
 
         new_password_hashed = hash_password(new_password)
@@ -69,7 +68,7 @@ class UserService:
         await BaseRepository.update(db, user)
 
     @staticmethod
-    async def update_user(db: AsyncSession, user_id: str, payload) -> None:
+    async def update_user(db: AsyncSession, user_id: uuid.UUID, payload) -> None:
         user = await BaseRepository.get_by_id(model=User, db=db, entity_id=user_id)
 
         for field, value in payload.dict(exclude_unset=True).items():
@@ -78,11 +77,9 @@ class UserService:
         await BaseRepository.update(db, user)
 
     @staticmethod
-    async def assign_user_to_organization(
-        db: AsyncSession, user_id: str, organization_id: str, set_primary: bool = False
-    ) -> None:
+    async def assign_user_to_organization(db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID, set_primary: bool = False) -> None:
         await UserRepository.assign_user_to_organization(db, user_id, organization_id, set_primary=set_primary)
 
     @staticmethod
-    async def unassign_user_from_organization(db: AsyncSession, user_id: str, organization_id: str) -> None:
+    async def unassign_user_from_organization(db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID) -> None:
         await UserRepository.unassign_user_from_organization(db, user_id, organization_id)

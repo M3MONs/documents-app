@@ -1,4 +1,5 @@
 from typing import Optional, Sequence
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -13,12 +14,12 @@ class DocumentRepository:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_all_file_paths(db: AsyncSession, category_id: str) -> set[str]:
+    async def get_all_file_paths(db: AsyncSession, category_id: uuid.UUID) -> set[str]:
         result = await db.execute(select(Document.file_path).where(Document.category_id == category_id))
         return {row[0] for row in result.fetchall()}
 
     @staticmethod
-    async def get_by_id_with_category(db: AsyncSession, document_id: str) -> Optional[Document]:
+    async def get_by_id_with_category(db: AsyncSession, document_id: uuid.UUID) -> Optional[Document]:
         result = await db.execute(
             select(Document).where(Document.id == document_id).options(selectinload(Document.category))
         )
@@ -34,8 +35,8 @@ class DocumentRepository:
     @staticmethod
     async def count_documents_by_folder(
         db: AsyncSession,
-        category_id: str,
-        folder_id: str | None,
+        category_id: uuid.UUID,
+        folder_id: uuid.UUID | None,
         filter_field: Optional[str] = None,
         filter_value: Optional[str] = None,
     ) -> int:
@@ -60,8 +61,8 @@ class DocumentRepository:
     @staticmethod
     async def get_documents_by_folder(
         db: AsyncSession,
-        category_id: str,
-        folder_id: str | None,
+        category_id: uuid.UUID,
+        folder_id: uuid.UUID | None,
         skip: int = 0,
         limit: int = 20,
         filter_field: Optional[str] = None,
@@ -96,7 +97,7 @@ class DocumentRepository:
         return result.scalars().all()
 
     @staticmethod
-    async def is_user_permitted_to_view_document(db: AsyncSession, user: User, document_id: str) -> bool:
+    async def is_user_permitted_to_view_document(db: AsyncSession, user: User, document_id: uuid.UUID) -> bool:
         from repositories.folder_repository import FolderRepository
 
         document = await DocumentRepository.get_by_id_with_category(db, document_id)
@@ -108,12 +109,12 @@ class DocumentRepository:
             return False
 
         if document.folder_id is not None:
-            folder = await FolderRepository.get_by_id_with_category(db, str(document.folder_id))
+            folder = await FolderRepository.get_by_id_with_category(db, document.folder_id)  # type: ignore
 
             if folder and bool(folder.is_private):
                 from services.folder_service import FolderService
 
-                has_access = await FolderService.user_has_access_to_folder(db, str(folder.id), str(user.id))
+                has_access = await FolderService.user_has_access_to_folder(db, folder.id, user.id) # type: ignore
                 if not has_access:
                     return False
 
@@ -122,12 +123,12 @@ class DocumentRepository:
     @staticmethod
     async def search_documents_recursive_with_permissions(
         db: AsyncSession,
-        category_id: str,
-        user_id: str,
-        user_department_ids: list[str],
+        category_id: uuid.UUID,
+        user_id: uuid.UUID,
+        user_department_ids: list[uuid.UUID],
         is_superuser: bool,
         search_query: str,
-        parent_folder_id: str | None = None,
+        parent_folder_id: uuid.UUID | None = None,
         skip: int = 0,
         limit: int = 20,
         ordering: Optional[str] = None,

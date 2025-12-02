@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
@@ -8,18 +9,18 @@ from repositories.base_repository import BaseRepository
 
 class OrganizationService:
     @staticmethod
-    async def get_organization_by_id(db: AsyncSession, organization_id: str) -> Organization | None:
+    async def get_organization_by_id(db: AsyncSession, organization_id: uuid.UUID) -> Organization | None:
         return await BaseRepository.get_by_id(Organization, db, organization_id)
 
     @staticmethod
-    async def delete_organization(db: AsyncSession, organization_id: str) -> None:
+    async def delete_organization(db: AsyncSession, organization_id: uuid.UUID) -> None:
         organization = await BaseRepository.get_by_id(Organization, db, organization_id)
         if organization:
-            await BaseRepository.delete(model=Organization, db=db, entity_id=str(organization.id))
+            await BaseRepository.delete(model=Organization, db=db, entity_id=organization.id) # type: ignore
 
     @staticmethod
     async def get_paginated_organizations(
-        db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | None = None
+        db: AsyncSession, pagination: PaginationParams, organization_ids: list[uuid.UUID] | None = None
     ) -> PaginationResponse:
         return await BaseRepository.get_paginated(
             model=Organization,
@@ -34,7 +35,7 @@ class OrganizationService:
         )
 
     @staticmethod
-    async def update_organization(db: AsyncSession, organization_id: str, payload) -> None:
+    async def update_organization(db: AsyncSession, organization_id: uuid.UUID, payload) -> None:
         organization = await BaseRepository.get_by_id(model=Organization, db=db, entity_id=organization_id)
 
         for field, value in payload.dict(exclude_unset=True).items():
@@ -61,7 +62,7 @@ class OrganizationService:
         return organization
 
     @staticmethod
-    async def user_has_access_to_organization(db: AsyncSession, user_id: str, organization_id: str) -> bool:
+    async def user_has_access_to_organization(db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID) -> bool:
         from repositories.user_repository import UserRepository
 
         return await UserRepository.user_belongs_to_organization(db, user_id, organization_id)

@@ -10,6 +10,7 @@ from core.security import validate_access_token, validate_refresh_token
 
 security = HTTPBearer()
 
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
@@ -18,7 +19,10 @@ async def get_current_user(
     payload = await validate_access_token(token)
     user_id = payload.get("sub")
 
-    user = await UserService.get_user_by_id(db, str(user_id))
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+
+    user = await UserService.get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
@@ -59,11 +63,15 @@ async def refresh_token(
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token not found")
-    
+
     payload = await validate_refresh_token(refresh_token)
     user_id = payload.get("sub")
 
-    user = await UserService.get_user_by_id(db, str(user_id))
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+
+    user = await UserService.get_user_by_id(db, user_id)
+
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 

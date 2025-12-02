@@ -1,4 +1,5 @@
 from typing import Sequence, TypeVar, Type, Any
+import uuid
 from sqlalchemy import Boolean, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +14,7 @@ class NotFoundError(Exception):
 
 class BaseRepository:
     @staticmethod
-    async def get_by_id(model: Type[M], db: AsyncSession, entity_id: str) -> M | None:
+    async def get_by_id(model: Type[M], db: AsyncSession, entity_id: str | uuid.UUID) -> M | None:
         obj = await db.get(model, entity_id)
         return obj
 
@@ -33,8 +34,8 @@ class BaseRepository:
         ordering_desc: bool = False,
         filters: list[tuple[str, Any]] | None = None,
         options: list | None = None,
-        ids: list[str] | None = None,
-        organization_ids: list[str] | None = None,
+        ids: list[str] | list[uuid.UUID] | None = None,
+        organization_ids: list[str] | list[uuid.UUID] | None = None,
     ) -> PaginationResponse:
         query = select(model)
         total_query = select(func.count()).select_from(model)
@@ -115,7 +116,7 @@ class BaseRepository:
             raise e
 
     @staticmethod
-    async def delete(model: Type[M], db: AsyncSession, entity_id: str) -> bool:
+    async def delete(model: Type[M], db: AsyncSession, entity_id: str | uuid.UUID) -> bool:
         obj = await db.get(model, entity_id)
         if obj is None:
             raise NotFoundError(f"{model.__name__} with id {entity_id} not found")

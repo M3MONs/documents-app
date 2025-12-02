@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
@@ -17,14 +18,15 @@ router = APIRouter(
 )
 
 
-async def verify_department_manager_access(
-    db: AsyncSession, current_user: User, organization_id: str
-) -> None:
+async def verify_department_manager_access(db: AsyncSession, current_user: User, organization_id: uuid.UUID) -> None:
     if getattr(current_user, "is_superuser", False):
         return
 
     has_role = await UserRepository.user_has_role_in_organization(
-        db, str(current_user.id), {StaticRole.DEPARTMENT_MANAGER.name_value}, organization_id
+        db,
+        current_user.id, # type: ignore
+        {StaticRole.DEPARTMENT_MANAGER.name_value},
+        organization_id,  # type: ignore
     )
     if not has_role:
         raise HTTPException(
@@ -39,15 +41,12 @@ async def get_departments_paginated(
     pagination: PaginationParams = Depends(),
     current_user=Depends(get_current_user),
 ) -> PaginationResponse | None:
-    organization_ids = await RoleChecker.get_user_organization_ids(
-        db, current_user, [StaticRole.DEPARTMENT_MANAGER.name_value]
-    )
+    organization_ids = await RoleChecker.get_user_organization_ids(db, current_user, [StaticRole.DEPARTMENT_MANAGER.name_value])
     departments = await DepartmentService.get_paginated_departments(db, pagination, organization_ids=organization_ids)
     return departments
 
-@router.get(
-    "/organizations", dependencies=[Depends(RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value]))], response_model=PaginationResponse
-)
+
+@router.get("/organizations", dependencies=[Depends(RoleChecker([StaticRole.DEPARTMENT_MANAGER.name_value]))], response_model=PaginationResponse)
 async def get_organizations_paginated(
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(),
@@ -61,7 +60,7 @@ async def get_organizations_paginated(
 
 @router.get("/{department_id}", response_model=DepartmentSchema)
 async def get_department_by_id(
-    department_id: str,
+    department_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DepartmentSchema | None:
@@ -70,13 +69,14 @@ async def get_department_by_id(
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
 
-    await verify_department_manager_access(db, current_user, str(department.organization_id))
+    await verify_department_manager_access(db, current_user, department.organization_id)  # type: ignore
 
     return DepartmentSchema.model_validate(department)
 
+
 @router.delete("/{department_id}")
 async def delete_department(
-    department_id: str,
+    department_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -85,7 +85,7 @@ async def delete_department(
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
 
-    await verify_department_manager_access(db, current_user, str(department.organization_id))
+    await verify_department_manager_access(db, current_user, department.organization_id)  # type: ignore
 
     await DepartmentService.delete_department(db, department_id=department_id)
 
@@ -96,7 +96,7 @@ async def create_department(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DepartmentSchema | None:
-    await verify_department_manager_access(db, current_user, str(payload.organization_id))
+    await verify_department_manager_access(db, current_user, payload.organization_id)
 
     if not await DepartmentService.is_department_name_unique_by_organization(db, payload.organization_id, payload.name):
         raise HTTPException(status_code=422, detail="Department name must be unique within the organization")
@@ -107,7 +107,7 @@ async def create_department(
 
 @router.put("/{department_id}")
 async def update_department(
-    department_id: str,
+    department_id: uuid.UUID,
     payload: DepartmentUpdatePayload,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -117,7 +117,7 @@ async def update_department(
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
 
-    await verify_department_manager_access(db, current_user, str(department.organization_id))
+    await verify_department_manager_access(db, current_user, department.organization_id)  # type: ignore
 
     if not DepartmentService.validate_department_update(db, department_id, payload.name):
         raise HTTPException(status_code=400, detail="Department name must be unique")
@@ -130,7 +130,7 @@ async def update_department(
     response_model=PaginationResponse,
 )
 async def get_department_users_paginated(
-    department_id: str,
+    department_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     pagination: PaginationParams = Depends(),
@@ -140,7 +140,7 @@ async def get_department_users_paginated(
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
 
-    await verify_department_manager_access(db, current_user, str(department.organization_id))
+    await verify_department_manager_access(db, current_user, department.organization_id)  # type: ignore
 
     users = await DepartmentService.get_paginated_users_with_assignment(db, department_id, pagination)
 
@@ -149,8 +149,8 @@ async def get_department_users_paginated(
 
 @router.post("/{department_id}/users/{user_id}/assign")
 async def assign_user_to_department(
-    department_id: str,
-    user_id: str,
+    department_id: uuid.UUID,
+    user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -158,7 +158,7 @@ async def assign_user_to_department(
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
 
-    await verify_department_manager_access(db, current_user, str(department.organization_id))
+    await verify_department_manager_access(db, current_user, department.organization_id)  # type: ignore
 
     try:
         await DepartmentService.assign_user_to_department(db, user_id, department_id)
@@ -168,8 +168,8 @@ async def assign_user_to_department(
 
 @router.post("/{department_id}/users/{user_id}/unassign")
 async def unassign_user_from_department(
-    department_id: str,
-    user_id: str,
+    department_id: uuid.UUID,
+    user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -177,7 +177,7 @@ async def unassign_user_from_department(
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
 
-    await verify_department_manager_access(db, current_user, str(department.organization_id))
+    await verify_department_manager_access(db, current_user, department.organization_id)  # type: ignore
 
     try:
         await DepartmentService.unassign_user_from_department(db, user_id, department_id)

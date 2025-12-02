@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.role_service import RoleService
@@ -23,7 +24,7 @@ router = APIRouter(
 
 @router.get("/user/{user_id}", response_model=list[UserOrganizationRoleSchema])
 async def get_user_organization_roles(
-    user_id: str, db: AsyncSession = Depends(get_db)
+    user_id: uuid.UUID, db: AsyncSession = Depends(get_db)
 ) -> list[UserOrganizationRoleSchema]:
     user = await UserService.get_user_by_id(db, user_id)
 
@@ -39,7 +40,7 @@ async def get_user_organization_roles(
     response_model=list[UserOrganizationRoleSchema],
 )
 async def get_user_roles_in_organization(
-    user_id: str, organization_id: str, db: AsyncSession = Depends(get_db)
+    user_id: uuid.UUID, organization_id: uuid.UUID, db: AsyncSession = Depends(get_db)
 ) -> list[UserOrganizationRoleSchema]:
     user = await UserService.get_user_by_id(db, user_id)
 
@@ -59,9 +60,9 @@ async def get_user_roles_in_organization(
 async def assign_role_to_user_in_organization(
     payload: UserOrganizationRoleCreatePayload, db: AsyncSession = Depends(get_db)
 ) -> UserOrganizationRoleSchema:
-    user_task = UserService.get_user_by_id(db, str(payload.user_id))
-    org_task = OrganizationService.get_organization_by_id(db, str(payload.organization_id))
-    role_task = RoleService.get_role_by_id(db, str(payload.role_id))
+    user_task = UserService.get_user_by_id(db, payload.user_id)
+    org_task = OrganizationService.get_organization_by_id(db, payload.organization_id)
+    role_task = RoleService.get_role_by_id(db, payload.role_id)
 
     user, organization, role = await asyncio.gather(user_task, org_task, role_task)
 
@@ -83,7 +84,7 @@ async def assign_role_to_user_in_organization(
 
 @router.put("/{uor_id}", response_model=UserOrganizationRoleSchema)
 async def update_user_organization_role(
-    uor_id: str, payload: UserOrganizationRoleUpdatePayload, db: AsyncSession = Depends(get_db)
+    uor_id: uuid.UUID, payload: UserOrganizationRoleUpdatePayload, db: AsyncSession = Depends(get_db)
 ) -> UserOrganizationRoleSchema:
     uor = UserOrganizationRoleService.get_by_id(db, uor_id)
 
@@ -97,7 +98,7 @@ async def update_user_organization_role(
 
 
 @router.delete("/{uor_id}")
-async def remove_role_from_user_in_organization(uor_id: str, db: AsyncSession = Depends(get_db)) -> None:
+async def remove_role_from_user_in_organization(uor_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
     uor = await UserOrganizationRoleService.get_by_id(db, uor_id)
 
     if not uor:

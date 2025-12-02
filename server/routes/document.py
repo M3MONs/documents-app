@@ -1,3 +1,4 @@
+import uuid
 from core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 @router.get("/{document_id}/content")
 async def get_document_content(
-    document_id: str,
+    document_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ) -> FileResponse:
@@ -37,7 +38,7 @@ async def get_document_content(
 
 @router.get("/{document_id}/metadata", response_model=DocumentMetadata)
 async def get_document_metadata(
-    document_id: str,
+    document_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ) -> DocumentMetadata:
@@ -69,7 +70,7 @@ async def get_document_metadata(
 
 @router.get("/{document_id}/download")
 async def download_document(
-    document_id: str,
+    document_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ) -> FileResponse:

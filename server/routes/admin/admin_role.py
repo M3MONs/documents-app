@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
@@ -20,7 +21,7 @@ async def get_roles_paginated(
 
 
 @router.get("/{role_id}", response_model=RoleCreatePayload)
-async def get_role_by_id(role_id: str, db: AsyncSession = Depends(get_db)) -> RoleCreatePayload | None:
+async def get_role_by_id(role_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> RoleCreatePayload | None:
     role = await RoleService.get_role_by_id(db, role_id)
 
     if not role:

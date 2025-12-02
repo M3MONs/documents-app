@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert, delete, exists
 from models.department import Department
@@ -16,7 +17,7 @@ class DepartmentRepository:
         return query.scalars().first()
     
     @staticmethod
-    async def validate_unique_name_on_update(db: AsyncSession, department_id: str, new_name: str) -> bool:
+    async def validate_unique_name_on_update(db: AsyncSession, department_id: uuid.UUID, new_name: str) -> bool:
         query = await db.execute(
             select(Department).where(
                 Department.name == new_name,
@@ -27,14 +28,14 @@ class DepartmentRepository:
         return existing_department is None
 
     @staticmethod
-    async def assign_user_to_department(db: AsyncSession, user_id: str, department_id: str) -> None:
+    async def assign_user_to_department(db: AsyncSession, user_id: uuid.UUID, department_id: uuid.UUID) -> None:
         await db.execute(
             insert(user_departments).values(user_id=user_id, department_id=department_id)
         )
         await db.commit()
 
     @staticmethod
-    async def unassign_user_from_department(db: AsyncSession, user_id: str, department_id: str) -> None:
+    async def unassign_user_from_department(db: AsyncSession, user_id: uuid.UUID, department_id: uuid.UUID) -> None:
         await db.execute(
             delete(user_departments).where(
                 user_departments.c.user_id == user_id,
@@ -45,15 +46,10 @@ class DepartmentRepository:
 
     @staticmethod
     async def get_paginated_users_with_assignment(
-        db: AsyncSession, department_id: str, pagination: PaginationParams
+        db: AsyncSession, department_id: uuid.UUID, pagination: PaginationParams
     ) -> PaginationResponse:
-        import uuid
-        try:
-            dept_uuid = uuid.UUID(department_id)
-        except ValueError:
-            raise ValueError(f"Invalid UUID format for department_id: {department_id}")
         
-        department = await db.get(Department, dept_uuid)
+        department = await db.get(Department, department_id)
         if not department:
             return PaginationResponse(total=0, items=[])
 
@@ -64,7 +60,7 @@ class DepartmentRepository:
             exists(
                 select(1).select_from(user_departments).where(
                     user_departments.c.user_id == User.id,
-                    user_departments.c.department_id == dept_uuid
+                    user_departments.c.department_id == department_id
                 )
             ).label('is_assigned')
         )
@@ -97,7 +93,7 @@ class DepartmentRepository:
         return PaginationResponse(total=total, items=user_schemas)
 
     @staticmethod
-    async def get_by_name_and_organization(db: AsyncSession, name: str, organization_id: str) -> Department | None:
+    async def get_by_name_and_organization(db: AsyncSession, name: str, organization_id: uuid.UUID) -> Department | None:
         query = await db.execute(
             select(Department).where(
                 Department.name == name,
@@ -107,7 +103,7 @@ class DepartmentRepository:
         return query.scalars().first()
     
     @staticmethod
-    async def is_user_assigned(db: AsyncSession, user_id: str, department_id: str) -> bool | None:
+    async def is_user_assigned(db: AsyncSession, user_id: uuid.UUID, department_id: uuid.UUID) -> bool | None:
         from sqlalchemy import select, exists
         from models.user import user_departments
         stmt = select(exists(
@@ -119,3 +115,4 @@ class DepartmentRepository:
         result = await db.execute(stmt)
         is_assigned = result.scalar()
         return is_assigned
+    

@@ -11,6 +11,7 @@ from schemas.pagination import PaginationParams, PaginationResponse
 from services.user_service import UserService
 from services.department_service import DepartmentService
 from services.folder_service import FolderService
+import uuid
 
 
 router = APIRouter(
@@ -19,15 +20,11 @@ router = APIRouter(
 )
 
 
-async def verify_folder_manager_access(
-    db: AsyncSession, current_user: User, organization_id: str
-) -> None:
+async def verify_folder_manager_access(db: AsyncSession, current_user: User, organization_id: uuid.UUID) -> None:
     if getattr(current_user, "is_superuser", False):
         return
 
-    has_role = await UserRepository.user_has_role_in_organization(
-        db, str(current_user.id), {StaticRole.CATEGORIES_MANAGER.name_value}, organization_id
-    )
+    has_role = await UserRepository.user_has_role_in_organization(db, current_user.id, {StaticRole.CATEGORIES_MANAGER.name_value}, organization_id)  # type: ignore
     if not has_role:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -37,7 +34,7 @@ async def verify_folder_manager_access(
 
 @router.get("/{folder_id}/departments")
 async def get_departments_assigned_to_folder(
-    folder_id: str,
+    folder_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     pagination: PaginationParams = Depends(),
@@ -47,15 +44,15 @@ async def get_departments_assigned_to_folder(
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    await verify_folder_manager_access(db, current_user, str(folder.category.organization_id))
+    await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
 
     return await FolderService.get_paginated_departments_assigned_to_folder(db, pagination, folder_id=folder_id)
 
 
 @router.post("/{folder_id}/departments/{department_id}/assign")
 async def assign_department_to_folder(
-    folder_id: str,
-    department_id: str,
+    folder_id: uuid.UUID,
+    department_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -64,7 +61,7 @@ async def assign_department_to_folder(
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    await verify_folder_manager_access(db, current_user, str(folder.category.organization_id))
+    await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
 
     department = await DepartmentService.get_department_by_id(db, department_id)
 
@@ -82,8 +79,8 @@ async def assign_department_to_folder(
 
 @router.post("/{folder_id}/departments/{department_id}/unassign")
 async def unassign_department_from_folder(
-    folder_id: str,
-    department_id: str,
+    folder_id: uuid.UUID,
+    department_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -92,7 +89,7 @@ async def unassign_department_from_folder(
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    await verify_folder_manager_access(db, current_user, str(folder.category.organization_id))
+    await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
 
     department = await DepartmentService.get_department_by_id(db, department_id)
 
@@ -110,7 +107,7 @@ async def unassign_department_from_folder(
 
 @router.get("/{folder_id}/users")
 async def get_users_assigned_to_folder(
-    folder_id: str,
+    folder_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     pagination: PaginationParams = Depends(),
@@ -120,15 +117,15 @@ async def get_users_assigned_to_folder(
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    await verify_folder_manager_access(db, current_user, str(folder.category.organization_id))
+    await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
 
     return await FolderService.get_paginated_users_assigned_to_folder(db, pagination, folder_id=folder_id)
 
 
 @router.post("/{folder_id}/users/{user_id}/assign")
 async def assign_user_to_folder(
-    folder_id: str,
-    user_id: str,
+    folder_id: uuid.UUID,
+    user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -137,7 +134,7 @@ async def assign_user_to_folder(
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    await verify_folder_manager_access(db, current_user, str(folder.category.organization_id))
+    await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
 
     user = await UserService.get_user_by_id(db, user_id)
 
@@ -155,8 +152,8 @@ async def assign_user_to_folder(
 
 @router.post("/{folder_id}/users/{user_id}/unassign")
 async def unassign_user_from_folder(
-    folder_id: str,
-    user_id: str,
+    folder_id: uuid.UUID,
+    user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -165,7 +162,7 @@ async def unassign_user_from_folder(
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    await verify_folder_manager_access(db, current_user, str(folder.category.organization_id))
+    await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
 
     user = await UserService.get_user_by_id(db, user_id)
 
@@ -180,7 +177,7 @@ async def unassign_user_from_folder(
 
 @router.patch("/{folder_id}/privacy")
 async def set_folder_privacy(
-    folder_id: str,
+    folder_id: uuid.UUID,
     privacy_update: FolderPrivacyUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -190,6 +187,6 @@ async def set_folder_privacy(
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    await verify_folder_manager_access(db, current_user, str(folder.category.organization_id))
+    await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
 
     await FolderService.set_folder_private(db, folder_id, privacy_update.is_private)

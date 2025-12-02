@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from core.roles import StaticRole
 from core.security import RoleChecker, get_current_user
@@ -19,13 +20,13 @@ router = APIRouter(
 
 
 async def verify_category_manager_access(
-    db: AsyncSession, current_user: User, organization_id: str
+    db: AsyncSession, current_user: User, organization_id: uuid.UUID
 ) -> None:
     if getattr(current_user, "is_superuser", False):
         return
 
     has_role = await UserRepository.user_has_role_in_organization(
-        db, str(current_user.id), {StaticRole.CATEGORIES_MANAGER.name_value}, organization_id
+        db, current_user.id, {StaticRole.CATEGORIES_MANAGER.name_value}, organization_id # type: ignore
     )
     if not has_role:
         raise HTTPException(
@@ -73,7 +74,7 @@ async def create_category(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await verify_category_manager_access(db, current_user, str(payload.organization_id))
+    await verify_category_manager_access(db, current_user, payload.organization_id)
 
     is_unique = await CategoryService.is_category_name_unique_in_organization(db, payload.organization_id, payload.name)
 
@@ -86,7 +87,7 @@ async def create_category(
 
 @router.delete("/{category_id}")
 async def delete_category(
-    category_id: str,
+    category_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -95,14 +96,14 @@ async def delete_category(
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    await verify_category_manager_access(db, current_user, str(category.organization_id))
+    await verify_category_manager_access(db, current_user, category.organization_id) # type: ignore
 
     await CategoryService.delete_category(db, category_id=category_id)
 
 
 @router.put("/{category_id}")
 async def update_department(
-    category_id: str,
+    category_id: uuid.UUID,
     payload: CategoryUpdatePayload,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -112,7 +113,7 @@ async def update_department(
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    await verify_category_manager_access(db, current_user, str(category.organization_id))
+    await verify_category_manager_access(db, current_user, category.organization_id) # type: ignore
 
     if not await CategoryService.validate_unique_name_on_update(db, category_id, payload.name):
         raise HTTPException(status_code=400, detail="Category name must be unique")
@@ -122,7 +123,7 @@ async def update_department(
 
 @router.get("/{category_id}/departments", response_model=PaginationResponse)
 async def get_category_departments(
-    category_id: str,
+    category_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     pagination: PaginationParams = Depends(),
@@ -131,7 +132,7 @@ async def get_category_departments(
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    await verify_category_manager_access(db, current_user, str(category.organization_id))
+    await verify_category_manager_access(db, current_user, category.organization_id) # type: ignore
 
     departments = await CategoryService.get_paginated_departments_with_assignment(db, category_id, pagination)
     return departments
@@ -139,7 +140,7 @@ async def get_category_departments(
 
 @router.post("/{category_id}/synchronize")
 async def synchronize_category(
-    category_id: str,
+    category_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -148,7 +149,7 @@ async def synchronize_category(
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    await verify_category_manager_access(db, current_user, str(category.organization_id))
+    await verify_category_manager_access(db, current_user, category.organization_id) # type: ignore
 
     try:
         await SyncService.sync_category(db, category_id)
@@ -158,8 +159,8 @@ async def synchronize_category(
 
 @router.post("/{category_id}/departments/{department_id}/assign")
 async def assign_department_to_category(
-    category_id: str,
-    department_id: str,
+    category_id: uuid.UUID,
+    department_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -167,15 +168,15 @@ async def assign_department_to_category(
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    await verify_category_manager_access(db, current_user, str(category.organization_id))
+    await verify_category_manager_access(db, current_user, category.organization_id) # type: ignore
 
     await CategoryService.assign_department_to_category(db, category_id, department_id)
 
 
 @router.post("/{category_id}/departments/{department_id}/unassign")
 async def unassign_department_from_category(
-    category_id: str,
-    department_id: str,
+    category_id: uuid.UUID,
+    department_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -183,6 +184,6 @@ async def unassign_department_from_category(
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    await verify_category_manager_access(db, current_user, str(category.organization_id))
+    await verify_category_manager_access(db, current_user, category.organization_id) # type: ignore
 
     await CategoryService.unassign_department_from_category(db, category_id, department_id)

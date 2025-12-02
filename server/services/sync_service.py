@@ -4,6 +4,7 @@ import hashlib
 import mimetypes
 from pathlib import Path
 from typing import Dict, Set
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
@@ -19,7 +20,7 @@ CATEGORY_MEDIA_ROOT = Path(settings.MEDIA_ROOT) / "categories"
 
 class SyncService:
     @staticmethod
-    async def sync_category(db: AsyncSession, category_id: str) -> None:
+    async def sync_category(db: AsyncSession, category_id: uuid.UUID) -> None:
         category = await CategoryService.get_category_by_id(db, category_id)
 
         if not category:
@@ -89,7 +90,7 @@ class SyncService:
         return hash_sha256.hexdigest()
 
     @staticmethod
-    async def _sync_folders(db: AsyncSession, category_id: str, scanned_folders: Dict[str, dict]) -> None:
+    async def _sync_folders(db: AsyncSession, category_id: uuid.UUID, scanned_folders: Dict[str, dict]) -> None:
         sorted_folders = sorted(scanned_folders.items(), key=lambda x: x[0].count('.'))
         
         for path_str, data in sorted_folders:
@@ -107,7 +108,7 @@ class SyncService:
                 )
 
     @staticmethod
-    async def _sync_documents(db: AsyncSession, category_id: str, scanned_docs: Dict[str, dict]) -> None:
+    async def _sync_documents(db: AsyncSession, category_id: uuid.UUID, scanned_docs: Dict[str, dict]) -> None:
         for file_path, data in scanned_docs.items():
             doc = await DocumentService.get_by_file_path(db, file_path)
             if not doc:
@@ -127,12 +128,12 @@ class SyncService:
                 )
             elif doc.file_hash != data["file_hash"]:
                 await DocumentService.update_document(
-                    db, str(doc.id), {"file_hash": data["file_hash"], "sync_status": "MODIFIED"}
+                    db, doc.id, {"file_hash": data["file_hash"], "sync_status": "MODIFIED"} # type: ignore
                 )
 
     @staticmethod
     async def _cleanup_orphans(
-        db: AsyncSession, category_id: str, scanned_folders: Set[str], scanned_docs: Set[str]
+        db: AsyncSession, category_id: uuid.UUID, scanned_folders: Set[str], scanned_docs: Set[str]
     ) -> None:
         db_folders = await FolderService.get_all_paths(db, category_id)
         to_delete = db_folders - scanned_folders
@@ -145,14 +146,14 @@ class SyncService:
             await DocumentService.delete_by_file_path(db, path)
 
     @staticmethod
-    async def _get_parent_folder_id(db: AsyncSession, category_id: str, parent_path: str | None) -> str | None:
+    async def _get_parent_folder_id(db: AsyncSession, category_id: uuid.UUID, parent_path: str | None) -> str | None:
         if not parent_path:
             return None
         parent = await FolderService.get_by_path(db, category_id, parent_path)
         return str(parent.id) if parent else None
 
     @staticmethod
-    async def _get_folder_id_by_path(db: AsyncSession, category_id: str, folder_path: str | None) -> str | None:
+    async def _get_folder_id_by_path(db: AsyncSession, category_id: uuid.UUID, folder_path: str | None) -> str | None:
         if not folder_path:
             return None
         folder = await FolderService.get_by_path(db, category_id, folder_path)

@@ -1,4 +1,5 @@
 from typing import Sequence
+import uuid
 from sqlalchemy import select, update
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +12,7 @@ from models.user_organization_role import UserOrganizationRole
 class UserRepository:
     @staticmethod
     async def user_has_role_in_organization(
-        db: AsyncSession, user_id: str, role_names: set[str] | list[str], organization_id: str
+        db: AsyncSession, user_id: uuid.UUID, role_names: set[str] | list[str], organization_id: uuid.UUID
     ) -> bool:
         if not role_names:
             return False
@@ -32,7 +33,7 @@ class UserRepository:
         return row is not None
 
     @staticmethod
-    async def get_user_organization_roles(db: AsyncSession, user_id: str) -> Sequence[UserOrganizationRole]:
+    async def get_user_organization_roles(db: AsyncSession, user_id: uuid.UUID) -> Sequence[UserOrganizationRole]:
         stmt = (
             select(UserOrganizationRole)
             .where(UserOrganizationRole.user_id == user_id)
@@ -42,7 +43,7 @@ class UserRepository:
         return res.scalars().all()
 
     @staticmethod
-    async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
+    async def get_user_by_id(db: AsyncSession, user_id: uuid.UUID) -> User | None:
         query = (
             select(User)
             .options(
@@ -75,18 +76,18 @@ class UserRepository:
         return result.scalars().first()
 
     @staticmethod
-    async def deactivate_user(db: AsyncSession, user_id: str) -> None:
+    async def deactivate_user(db: AsyncSession, user_id: uuid.UUID) -> None:
         await db.execute(update(User).where(User.id == user_id).values(is_active=False))
         await db.commit()
 
     @staticmethod
-    async def activate_user(db: AsyncSession, user_id: str) -> None:
+    async def activate_user(db: AsyncSession, user_id: uuid.UUID) -> None:
         await db.execute(update(User).where(User.id == user_id).values(is_active=True))
         await db.commit()
 
     @staticmethod
     async def assign_user_to_organization(
-        db: AsyncSession, user_id: str, organization_id: str, set_primary: bool = False
+        db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID, set_primary: bool = False
     ) -> None:
         user = await db.get(User, user_id)
         if user is None:
@@ -101,7 +102,7 @@ class UserRepository:
         await db.commit()
 
     @staticmethod
-    async def unassign_user_from_organization(db: AsyncSession, user_id: str, organization_id: str) -> None:
+    async def unassign_user_from_organization(db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID) -> None:
         user = await db.get(User, user_id)
         if user is None:
             raise ValueError(f"User with id {user_id} not found")
@@ -120,7 +121,7 @@ class UserRepository:
         await db.commit()
 
     @staticmethod
-    async def user_belongs_to_organization(db: AsyncSession, user_id: str, organization_id: str) -> bool:
+    async def user_belongs_to_organization(db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID) -> bool:
         user = await db.get(User, user_id)
 
         if user is None:

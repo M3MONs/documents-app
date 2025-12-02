@@ -1,4 +1,5 @@
 from typing import Dict, Optional
+import uuid
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.folder import Folder
@@ -10,19 +11,19 @@ from services.user_service import UserService
 
 class FolderService:
     @staticmethod
-    async def get_folder_by_id(db: AsyncSession, folder_id: str) -> Folder | None:
+    async def get_folder_by_id(db: AsyncSession, folder_id: uuid.UUID) -> Folder | None:
         return await BaseRepository.get_by_id(Folder, db, folder_id)
 
     @staticmethod
-    async def get_folder_by_id_with_category(db: AsyncSession, folder_id: str) -> Optional[Folder]:
+    async def get_folder_by_id_with_category(db: AsyncSession, folder_id: uuid.UUID) -> Optional[Folder]:
         return await FolderRepository.get_by_id_with_category(db, folder_id)
 
     @staticmethod
-    async def get_by_path(db: AsyncSession, category_id: str, path: str) -> Optional[Folder]:
+    async def get_by_path(db: AsyncSession, category_id: uuid.UUID, path: str) -> Optional[Folder]:
         return await FolderRepository.get_by_path(db, category_id, path)
 
     @staticmethod
-    async def get_all_paths(db: AsyncSession, category_id: str) -> set[str]:
+    async def get_all_paths(db: AsyncSession, category_id: uuid.UUID) -> set[str]:
         return await FolderRepository.get_all_paths(db, category_id)
 
     @staticmethod
@@ -33,11 +34,11 @@ class FolderService:
         return folder
 
     @staticmethod
-    async def delete_by_path(db: AsyncSession, category_id: str, path: str) -> None:
+    async def delete_by_path(db: AsyncSession, category_id: uuid.UUID, path: str) -> None:
         await FolderRepository.delete_by_path(db, category_id, path)
 
     @staticmethod
-    async def is_department_assigned(db: AsyncSession, folder_id: str, department_id: str) -> bool:
+    async def is_department_assigned(db: AsyncSession, folder_id: uuid.UUID, department_id: uuid.UUID) -> bool:
         return await FolderRepository.is_department_assigned(db, folder_id, department_id)
 
     @staticmethod
@@ -49,7 +50,7 @@ class FolderService:
         await FolderRepository.unassign_department_from_folder(db, folder, department)
 
     @staticmethod
-    async def is_user_assigned(db: AsyncSession, folder_id: str, user_id: str) -> bool:
+    async def is_user_assigned(db: AsyncSession, folder_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         return await FolderRepository.is_user_assigned(db, folder_id, user_id)
 
     @staticmethod
@@ -61,29 +62,35 @@ class FolderService:
         await FolderRepository.unassign_user_from_folder(db, folder, user)
 
     @staticmethod
-    async def get_paginated_departments_assigned_to_folder(db: AsyncSession, pagination, folder_id: str) -> PaginationResponse:
+    async def get_paginated_departments_assigned_to_folder(db: AsyncSession, pagination, folder_id: uuid.UUID) -> PaginationResponse:
         return await FolderRepository.get_paginated_departments_assigned_to_folder(db, folder_id=folder_id, pagination=pagination)
 
     @staticmethod
-    async def get_paginated_users_assigned_to_folder(db: AsyncSession, pagination, folder_id: str) -> PaginationResponse:
+    async def get_paginated_users_assigned_to_folder(db: AsyncSession, pagination, folder_id: uuid.UUID) -> PaginationResponse:
         return await FolderRepository.get_paginated_users_assigned_to_folder(db, folder_id=folder_id, pagination=pagination)
 
     @staticmethod
-    async def is_any_department_assigned(db: AsyncSession, folder_id: str, department_ids: list[str]) -> bool:
+    async def is_any_department_assigned(db: AsyncSession, folder_id: uuid.UUID, department_ids: list[uuid.UUID]) -> bool:
         return await FolderRepository.is_any_department_assigned(db, folder_id, department_ids)
 
     @staticmethod
-    async def set_folder_private(db: AsyncSession, folder_id: str, is_private: bool) -> None:
+    async def set_folder_private(db: AsyncSession, folder_id: uuid.UUID, is_private: bool) -> None:
         folder = await FolderService.get_folder_by_id_with_category(db, folder_id)
 
         if not folder:
             raise HTTPException(status_code=404, detail="Folder not found")
 
+        sub_folders = await FolderRepository.get_all_child_folders(db, folder_id)
+
+        for sub_folder in sub_folders:
+            setattr(sub_folder, "is_private", is_private)
+            await BaseRepository.update(db, sub_folder)
+
         setattr(folder, "is_private", is_private)
         await BaseRepository.update(db, folder)
 
     @staticmethod
-    async def user_has_access_to_folder(db: AsyncSession, folder_id: str, user_id: str) -> bool:
+    async def user_has_access_to_folder(db: AsyncSession, folder_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         folder = await FolderService.get_folder_by_id(db, folder_id)
 
         if not folder:
@@ -101,7 +108,7 @@ class FolderService:
             return True
 
         if user:
-            department_ids = [str(department.id) for department in user.departments]
+            department_ids = [department.id for department in user.departments]
             if await FolderService.is_any_department_assigned(db, folder_id, department_ids):
                 return True
 

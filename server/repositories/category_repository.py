@@ -1,4 +1,5 @@
 from typing import Any, Sequence
+import uuid
 from sqlalchemy import ColumnElement, Subquery, select, exists, and_, or_, insert, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.category import Category, category_department_visibility
@@ -11,7 +12,7 @@ from schemas.pagination import PaginationParams, PaginationResponse
 class CategoryRepository:
     @staticmethod
     async def get_categories_for_user_in_organization(
-        db: AsyncSession, user_id: str, organization_id: str
+        db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID
     ) -> Sequence[Category]:
         user_departments_subquery = CategoryRepository._get_user_departments_subquery(user_id)
         access_filter = CategoryRepository._get_category_access_filter(user_departments_subquery)
@@ -27,7 +28,7 @@ class CategoryRepository:
         return result.scalars().all()
 
     @staticmethod
-    async def get_category_for_user(db: AsyncSession, category_id: str, user_id: str) -> Category | None:
+    async def get_category_for_user(db: AsyncSession, category_id: uuid.UUID, user_id: uuid.UUID) -> Category | None:
         user_departments_subquery = CategoryRepository._get_user_departments_subquery(user_id)
         access_filter = CategoryRepository._get_category_access_filter(user_departments_subquery)
 
@@ -39,19 +40,19 @@ class CategoryRepository:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def is_unique_category_name_in_organization(db: AsyncSession, organization_id: str, name: str) -> bool:
+    async def is_unique_category_name_in_organization(db: AsyncSession, organization_id: uuid.UUID, name: str) -> bool:
         stmt = select(exists().where(and_(Category.organization_id == organization_id, Category.name.ilike(name))))
         result = await db.execute(stmt)
         return not result.scalar()
 
     @staticmethod
-    async def validate_unique_name_on_update(db: AsyncSession, category_id: str, new_name: str) -> bool:
+    async def validate_unique_name_on_update(db: AsyncSession, category_id: uuid.UUID, new_name: str) -> bool:
         stmt = select(exists().where(and_(Category.name == new_name, Category.id != category_id)))
         result = await db.execute(stmt)
         return not result.scalar()
 
     @staticmethod
-    async def get_departments_for_category(db: AsyncSession, category_id: str) -> Sequence[Department]:
+    async def get_departments_for_category(db: AsyncSession, category_id: uuid.UUID) -> Sequence[Department]:
         stmt = (
             select(Department)
             .join(category_department_visibility)
@@ -62,14 +63,14 @@ class CategoryRepository:
         return result.scalars().all()
 
     @staticmethod
-    async def assign_department_to_category(db: AsyncSession, category_id: str, department_id: str) -> None:
+    async def assign_department_to_category(db: AsyncSession, category_id: uuid.UUID, department_id: uuid.UUID) -> None:
         await db.execute(
             insert(category_department_visibility).values(category_id=category_id, department_id=department_id)
         )
         await db.commit()
 
     @staticmethod
-    async def unassign_department_from_category(db: AsyncSession, category_id: str, department_id: str) -> None:
+    async def unassign_department_from_category(db: AsyncSession, category_id: uuid.UUID, department_id: uuid.UUID) -> None:
         await db.execute(
             delete(category_department_visibility).where(
                 category_department_visibility.c.category_id == category_id,
@@ -79,7 +80,7 @@ class CategoryRepository:
         await db.commit()
 
     @staticmethod
-    async def is_department_assigned_to_category(db: AsyncSession, category_id: str, department_id: str) -> bool:
+    async def is_department_assigned_to_category(db: AsyncSession, category_id: uuid.UUID, department_id: uuid.UUID) -> bool:
         stmt = select(
             exists().where(
                 category_department_visibility.c.category_id == category_id,
@@ -91,20 +92,13 @@ class CategoryRepository:
 
     @staticmethod
     async def get_paginated_departments_with_assignment(
-        db: AsyncSession, category_id: str, pagination: PaginationParams
+        db: AsyncSession, category_id: uuid.UUID, pagination: PaginationParams
     ) -> PaginationResponse:
-        import uuid
-
-        try:
-            cat_uuid = uuid.UUID(category_id)
-        except ValueError:
-            raise ValueError(f"Invalid UUID format for category_id: {category_id}")
-
-        category = await db.get(Category, cat_uuid)
+        category = await db.get(Category, category_id)
         if not category:
             return PaginationResponse(total=0, items=[])
 
-        query = CategoryRepository._build_departments_query(str(category.id), str(category.organization_id))
+        query = CategoryRepository._build_departments_query(category.id, category.organization_id) # type: ignore
 
         total_query = select(Department).where(Department.organization_id == category.organization_id)
 
@@ -126,7 +120,7 @@ class CategoryRepository:
         return PaginationResponse(total=total, items=items)
 
     @staticmethod
-    def _get_user_departments_subquery(user_id: str) -> Subquery:
+    def _get_user_departments_subquery(user_id: uuid.UUID) -> Subquery:
         return select(user_departments.c.department_id).where(user_departments.c.user_id == user_id).subquery()
 
     @staticmethod
@@ -148,7 +142,7 @@ class CategoryRepository:
         )
         
     @staticmethod
-    def _build_departments_query(category_id: str, organization_id: str):
+    def _build_departments_query(category_id: uuid.UUID, organization_id: uuid.UUID):
         return (
             select(Department)
             .where(Department.organization_id == organization_id)

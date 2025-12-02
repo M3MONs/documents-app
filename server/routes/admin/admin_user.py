@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/admin/users", tags=["admin_users"], dependencies=[De
 
 @router.get("", response_model=PaginationResponse)
 async def get_users_paginated(
-    organization_id: str | None = None, db: AsyncSession = Depends(get_db), pagination: PaginationParams = Depends()
+    organization_id: uuid.UUID | None = None, db: AsyncSession = Depends(get_db), pagination: PaginationParams = Depends()
 ) -> PaginationResponse:
     users = await UserService.get_paginated_users(db, pagination, organization_id)
 
@@ -23,7 +24,7 @@ async def get_users_paginated(
 
 
 @router.get("/{user_id}", response_model=UserSchema)
-async def get_user_by_id(user_id: str, db: AsyncSession = Depends(get_db)) -> UserSchema | None:
+async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> UserSchema | None:
     user = await UserService.get_user_by_id(db, user_id)
     if user:
         return UserSchema.model_validate(user)
@@ -32,7 +33,7 @@ async def get_user_by_id(user_id: str, db: AsyncSession = Depends(get_db)) -> Us
 
 # Deactivate user only for superuser
 @router.delete("/{user_id}", dependencies=[Depends(RoleChecker([]))])
-async def delete_user(user_id: str, db: AsyncSession = Depends(get_db)) -> None:
+async def delete_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
     user = await UserService.get_user_by_id(db, user_id)
 
     if not user:
@@ -49,7 +50,7 @@ async def delete_user(user_id: str, db: AsyncSession = Depends(get_db)) -> None:
 
 # Activate user only for superuser
 @router.post("/{user_id}/activate", dependencies=[Depends(RoleChecker([]))])
-async def activate_user(user_id: str, db: AsyncSession = Depends(get_db)) -> None:
+async def activate_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
     user = await UserService.get_user_by_id(db, user_id)
 
     if not user:
@@ -64,7 +65,7 @@ async def activate_user(user_id: str, db: AsyncSession = Depends(get_db)) -> Non
 # Reset user password only for superuser
 @router.post("/{user_id}/reset-password", dependencies=[Depends(RoleChecker([]))])
 async def reset_user_password(
-    user_id: str,
+    user_id: uuid.UUID,
     payload: PasswordResetPayload,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -89,7 +90,7 @@ async def reset_user_password(
 
 @router.put("/{user_id}")
 async def edit_user(
-    user_id: str, payload: UserEditPayload, db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)
+    user_id: uuid.UUID, payload: UserEditPayload, db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)
 ) -> None:
     user = await UserService.get_user_by_id(db, user_id)
 

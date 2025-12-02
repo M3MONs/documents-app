@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.pagination import PaginationParams, PaginationResponse
 from repositories.base_repository import BaseRepository
@@ -32,11 +33,11 @@ class RoleService:
         return role
 
     @staticmethod
-    async def get_role_by_id(db: AsyncSession, role_id: str) -> Role | None:
+    async def get_role_by_id(db: AsyncSession, role_id: uuid.UUID) -> Role | None:
         return await BaseRepository.get_by_id(Role, db, role_id)
 
     @staticmethod
-    async def delete_role(db: AsyncSession, role_id: str) -> None:
+    async def delete_role(db: AsyncSession, role_id: uuid.UUID) -> None:
         role = await BaseRepository.get_by_id(Role, db, role_id)
 
         if role:

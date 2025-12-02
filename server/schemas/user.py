@@ -1,5 +1,6 @@
+from typing import Any
 import uuid
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from schemas.organization import Organization
 
 
@@ -40,15 +41,29 @@ class User(BaseModel):
     additional_organizations: list[Organization] = []
     
     roles: list[str] = Field(default_factory=list)
-    organization_roles: list[SimpleUserOrganizationRole] = Field(default_factory=list)
+    organization_roles: dict[uuid.UUID, list[str]] = Field(default_factory=dict)
+    
+    @field_validator('organization_roles', mode='before')
+    @classmethod
+    def transform_organization_roles(cls, v) -> dict[uuid.UUID, list[str]] | Any:
+        if isinstance(v, list):
+            result = {}
+            for uor in v:
+                org_id = getattr(uor, 'organization_id', None)
+                role_name = getattr(uor.role, 'name', None) if hasattr(uor, 'role') and uor.role else None
+                if org_id and role_name:
+                    if org_id not in result:
+                        result[org_id] = []
+                    result[org_id].append(role_name)
+            return result
+        return v
     
     @model_validator(mode='after')
     def compute_roles_from_organization_roles(self) -> 'User':    
         if not self.roles and self.organization_roles:
             role_names = set()
-            for uor in self.organization_roles:
-                if uor and hasattr(uor, 'role_name') and uor.role_name:
-                    role_names.add(uor.role_name)
+            for role_list in self.organization_roles.values():
+                role_names.update(role_list)
             self.roles = list(role_names)
         return self
 

@@ -7,6 +7,7 @@ export interface User {
     is_active: boolean;
     is_superuser?: boolean | null;
     roles?: string[] | null;
+    organization_roles?: Record<string, string[]> | null;
     primary_organization?: Organization | null;
     additional_organizations?: Organization[] | null;
     is_assigned?: boolean | null;

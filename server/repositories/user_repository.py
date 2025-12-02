@@ -127,11 +127,11 @@ class UserRepository:
         if user is None:
             return False
 
-        if str(user.primary_organization_id) == organization_id:
+        if bool(user.primary_organization_id == organization_id):
             return True
 
         for org in user.additional_organizations:
-            if str(org.id) == organization_id:
+            if org.id == organization_id:
                 return True
 
         return False

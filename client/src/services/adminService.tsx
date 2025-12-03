@@ -309,4 +309,8 @@ export default class AdminService {
     static unassignUserFromFolder = async (folderId: string, userId: string) => {
         await apiClient.post(`${URL}/folders/${folderId}/users/${userId}/unassign`);
     };
+
+    static updateFolder = async (folderId: string, payload: { name: string; is_private: boolean }) => {
+        await apiClient.put(`${URL}/folders/${folderId}`, payload);
+    };
 }

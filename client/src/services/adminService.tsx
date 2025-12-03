@@ -313,4 +313,15 @@ export default class AdminService {
     static updateFolder = async (folderId: string, payload: { name: string; is_private: boolean }) => {
         await apiClient.put(`${URL}/folders/${folderId}`, payload);
     };
+
+    // Document Management
+
+    static addDocument = async (formData: FormData) => {
+        const response = await apiClient.post(`${URL}/documents`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+        return response.data;
+    }
 }

@@ -6,7 +6,7 @@ from core.roles import StaticRole
 from core.security import get_current_user
 from models.user import User
 from repositories.user_repository import UserRepository
-from schemas.folder import FolderPrivacyUpdate
+from schemas.folder import FolderPrivacyUpdate, FolderUpdate
 from schemas.pagination import PaginationParams, PaginationResponse
 from services.user_service import UserService
 from services.department_service import DepartmentService
@@ -190,3 +190,20 @@ async def set_folder_privacy(
     await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
 
     await FolderService.set_folder_private(db, folder_id, privacy_update.is_private)
+
+
+@router.put("/{folder_id}")
+async def update_folder(
+    folder_id: uuid.UUID,
+    folder_update: FolderUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    folder = await FolderService.get_folder_by_id_with_category(db, folder_id)
+
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
+
+    await FolderService.update_folder(db, folder_id, folder_update)

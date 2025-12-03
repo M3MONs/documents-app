@@ -83,9 +83,9 @@ const useCategoryPageState = (categoryId?: string) => {
     );
 
     const navigateBack = useCallback(() => {
-        if (folderHistory.length <= 1) return; // Jesteśmy w root
+        if (folderHistory.length <= 1) return;
 
-        const previousFolder = folderHistory[folderHistory.length - 2]; // Folder poprzedni
+        const previousFolder = folderHistory[folderHistory.length - 2];
 
         if (previousFolder.id === null) {
             setSearchParams((prev: URLSearchParams) => {

@@ -55,6 +55,7 @@ export const handleApiFormError = <T extends Record<string, any>>(error: unknown
 export const handleApiError = (error: unknown) => {
     if (error instanceof AxiosError && error.response?.data) {
         const errorData = error.response.data as ErrorResponse;
+        console.log("Error Data:", errorData);
 
         if (Array.isArray(errorData.detail)) {
             errorData.detail.forEach((err) => {

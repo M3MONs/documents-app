@@ -404,3 +404,14 @@ class FolderRepository:
         result = await db.execute(query)
 
         return result.scalars().all(), total
+
+
+    @staticmethod
+    async def check_folder_exists_by_name_category_path(db: AsyncSession, category_id: uuid.UUID, name: str, path: Ltree) -> Optional[Folder]:
+        query = select(Folder).where(
+            Folder.category_id == category_id,
+            Folder.name == name,
+            Folder.path == path
+        )
+        result = await db.execute(query)
+        return result.scalar_one_or_none()

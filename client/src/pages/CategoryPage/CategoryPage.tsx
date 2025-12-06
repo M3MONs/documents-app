@@ -13,11 +13,13 @@ import useCategoryPageState from "@/hooks/useCategoryPageState";
 import FolderManageDialog from "./components/Manager/FolderManageDialog";
 import { useAuth } from "@/context/AuthContext";
 import { StaticRoles } from "@/constants/roles";
+import AddDocumentDialog from "./components/Document/AddDocumentDialog";
 
 const CategoryPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const { user } = useAuth();
   const [selectedFolder, setSelectedFolder] = useState<ContentItem | null>(null);
+  const [isAddDocumentDialogOpen, setIsAddDocumentDialogOpen] = useState(false);
 
   const {
     currentFolderId,
@@ -87,7 +89,9 @@ const CategoryPage = () => {
     return items;
   }, [data]);
 
-  const handleAddDocument = useCallback(() => {}, []);
+  const handleAddDocument = useCallback(() => {
+    setIsAddDocumentDialogOpen(true);
+  }, []);
 
   const handleItemClick = useCallback(
     (item: ContentItem) => {
@@ -157,6 +161,13 @@ const CategoryPage = () => {
         <DocumentDialog selectedDocument={selectedDocument} setSelectedDocument={setSelectedDocument} />
 
         <FolderManageDialog selectedFolder={selectedFolder} setSelectedFolder={setSelectedFolder} />
+
+        <AddDocumentDialog
+          isOpen={isAddDocumentDialogOpen}
+          onClose={() => setIsAddDocumentDialogOpen(false)}
+          currentFolderId={currentFolderId || undefined}
+          categoryId={categoryId}
+        />
       </div>
     </DashboardLayout>
   );

@@ -14,6 +14,7 @@ from routes.admin import (
     admin_user_organization_role,
     admin_category,
     admin_folder,
+    admin_document,
 )
 from core.roles import StaticRole
 from schemas.role import RoleCreatePayload
@@ -68,5 +69,6 @@ api_router.include_router(admin_role.router)
 api_router.include_router(admin_user_organization_role.router)
 api_router.include_router(admin_category.router)
 api_router.include_router(admin_folder.router)
+api_router.include_router(admin_document.router)
 
 app.include_router(api_router)

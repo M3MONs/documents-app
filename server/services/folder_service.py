@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 import uuid
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -102,10 +102,9 @@ class FolderService:
 
         if bool(folder.name != data.name):
             await FolderService._update_folder_name(db, folder, data)
-        
+
         if bool(folder.is_private != data.is_private) or (data.apply_to_children and not data.is_private):
             await FolderService._update_folder_privacy(db, folder, data)
-
 
     @staticmethod
     async def user_has_access_to_folder(db: AsyncSession, folder_id: uuid.UUID, user_id: uuid.UUID) -> bool:
@@ -131,7 +130,7 @@ class FolderService:
                 return True
 
         return False
-    
+
     @staticmethod
     async def _update_folder_name(db: AsyncSession, folder: Folder, data: FolderUpdate) -> None:
         existing_folder = await FolderRepository.check_folder_exists_by_name_category_path(db, folder.category_id, data.name, folder.path)  # type: ignore
@@ -140,20 +139,19 @@ class FolderService:
             raise HTTPException(status_code=400, detail="A folder with this name already exists in the category")
 
         path_str = str(folder.path)
-        new_path = data.name if '.' not in path_str else f"{path_str.rsplit('.', 1)[0]}.{data.name}"
+        new_path = data.name if "." not in path_str else f"{path_str.rsplit('.', 1)[0]}.{data.name}"
 
-        real_old_path = os.path.join(settings.MEDIA_ROOT, "categories", str(folder.category_id), path_str.replace('.', os.sep))
-        real_new_path = os.path.join(settings.MEDIA_ROOT, "categories", str(folder.category_id), new_path.replace('.', os.sep))
+        real_old_path = os.path.join(settings.MEDIA_ROOT, "categories", str(folder.category_id), path_str.replace(".", os.sep))
+        real_new_path = os.path.join(settings.MEDIA_ROOT, "categories", str(folder.category_id), new_path.replace(".", os.sep))
 
         await FolderService._rename_folder_in_filesystem(real_old_path, real_new_path)  # type: ignore
 
-        sub_folders = await FolderRepository.get_all_child_folders(db, folder.id) # type: ignore
+        sub_folders = await FolderRepository.get_all_child_folders(db, folder.id)  # type: ignore
         for sub_folder in sub_folders:
             old_sub_path = str(sub_folder.path)
             new_sub_path = old_sub_path.replace(path_str, new_path, 1)
             setattr(sub_folder, "path", new_sub_path)
             await BaseRepository.update(db, sub_folder)
-
 
         setattr(folder, "name", data.name)
         setattr(folder, "path", new_path)
@@ -165,14 +163,18 @@ class FolderService:
             await asyncio.to_thread(os.rename, old_path, new_path)
         except OSError as e:
             raise HTTPException(status_code=500, detail=f"Failed to rename folder in filesystem: {str(e)}")
-        
+
     @staticmethod
     async def _update_folder_privacy(db: AsyncSession, folder: Folder, data: FolderUpdate) -> None:
         if (data.apply_to_children and not data.is_private) or data.is_private:
-            sub_folders = await FolderRepository.get_all_child_folders(db, folder.id) # type: ignore
+            sub_folders = await FolderRepository.get_all_child_folders(db, folder.id)  # type: ignore
             for sub_folder in sub_folders:
                 setattr(sub_folder, "is_private", data.is_private)
                 await BaseRepository.update(db, sub_folder)
 
         setattr(folder, "is_private", data.is_private)
         await BaseRepository.update(db, folder)
+
+    @staticmethod
+    async def convert_ltree_to_path(ltree_str: Any) -> str:
+        return str(ltree_str).replace(".", os.sep)

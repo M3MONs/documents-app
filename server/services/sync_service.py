@@ -3,7 +3,7 @@ import asyncio
 import hashlib
 import mimetypes
 from pathlib import Path
-from typing import Dict, Set
+from typing import Any, Dict, Set
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -48,7 +48,7 @@ class SyncService:
         logger.info(f"Synchronized category {category_id}")
 
     @staticmethod
-    async def _scan_filesystem(category_path: Path) -> tuple[Dict[str, dict], Dict[str, dict]]:
+    async def _scan_filesystem(category_path: Path) -> tuple[dict[Any, Any], dict[Any, Any]]:
         folders = {}
         documents = {}
 
@@ -70,13 +70,13 @@ class SyncService:
                 rel_path = file_path.relative_to(category_path)
                 file_hash = await asyncio.get_event_loop().run_in_executor(None, SyncService._compute_hash, file_path)
                 mime_type, _ = mimetypes.guess_type(str(file_path))
-                documents[str(rel_path)] = {
+                folder_path = str(rel_path.parent).replace("\\", ".").replace("/", ".") if rel_path.parent != Path(".") else None
+                documents[(folder_path, file_name)] = {
                     "name": file_name,
-                    "file_path": str(rel_path),
                     "file_hash": file_hash,
                     "mime_type": mime_type,
                     "file_size": file_path.stat().st_size,
-                    "folder_path": str(rel_path.parent).replace("\\", ".").replace("/", ".") if rel_path.parent != Path(".") else None,
+                    "folder_path": folder_path,
                 }
 
         return folders, documents
@@ -108,16 +108,15 @@ class SyncService:
                 )
 
     @staticmethod
-    async def _sync_documents(db: AsyncSession, category_id: uuid.UUID, scanned_docs: Dict[str, dict]) -> None:
-        for file_path, data in scanned_docs.items():
-            doc = await DocumentService.get_by_file_path(db, file_path)
+    async def _sync_documents(db: AsyncSession, category_id: uuid.UUID, scanned_docs) -> None:
+        for (folder_path, file_name), data in scanned_docs.items():
+            folder_id = await SyncService._get_folder_id_by_path(db, category_id, folder_path)
+            doc = await DocumentService.get_by_folder_and_name(db, folder_id, file_name) # type: ignore
             if not doc:
-                folder_id = await SyncService._get_folder_id_by_path(db, category_id, data["folder_path"])
                 await DocumentService.create_document(
                     db,
                     {
-                        "name": data["name"],
-                        "file_path": file_path,
+                        "name": file_name,
                         "file_hash": data["file_hash"],
                         "mime_type": data["mime_type"],
                         "file_size": data["file_size"],
@@ -133,17 +132,18 @@ class SyncService:
 
     @staticmethod
     async def _cleanup_orphans(
-        db: AsyncSession, category_id: uuid.UUID, scanned_folders: Set[str], scanned_docs: Set[str]
+        db: AsyncSession, category_id: uuid.UUID, scanned_folders: Set[str], scanned_docs
     ) -> None:
         db_folders = await FolderService.get_all_paths(db, category_id)
         to_delete = db_folders - scanned_folders
         for path in to_delete:
             await FolderService.delete_by_path(db, category_id, path)
 
-        db_docs = await DocumentService.get_all_file_paths(db, category_id)
+        db_docs = await DocumentService.get_all_folder_name_pairs(db, category_id)
         to_delete = db_docs - scanned_docs
-        for path in to_delete:
-            await DocumentService.delete_by_file_path(db, path)
+        for folder_path, name in to_delete:
+            folder_id = await SyncService._get_folder_id_by_path(db, category_id, folder_path)
+            await DocumentService.delete_by_folder_and_name(db, folder_id, name) # type: ignore
 
     @staticmethod
     async def _get_parent_folder_id(db: AsyncSession, category_id: uuid.UUID, parent_path: str | None) -> str | None:

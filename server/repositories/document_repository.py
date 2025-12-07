@@ -9,28 +9,11 @@ from models.user import User
 
 class DocumentRepository:
     @staticmethod
-    async def get_by_file_path(db: AsyncSession, file_path: str) -> Optional[Document]:
-        result = await db.execute(select(Document).where(Document.file_path == file_path))
-        return result.scalar_one_or_none()
-
-    @staticmethod
-    async def get_all_file_paths(db: AsyncSession, category_id: uuid.UUID) -> set[str]:
-        result = await db.execute(select(Document.file_path).where(Document.category_id == category_id))
-        return {row[0] for row in result.fetchall()}
-
-    @staticmethod
     async def get_by_id_with_category(db: AsyncSession, document_id: uuid.UUID) -> Optional[Document]:
         result = await db.execute(
             select(Document).where(Document.id == document_id).options(selectinload(Document.category))
         )
         return result.scalar_one_or_none()
-
-    @staticmethod
-    async def delete_by_file_path(db: AsyncSession, file_path: str) -> None:
-        document = await DocumentRepository.get_by_file_path(db, file_path)
-        if document:
-            await db.delete(document)
-            await db.commit()
 
     @staticmethod
     async def count_documents_by_folder(

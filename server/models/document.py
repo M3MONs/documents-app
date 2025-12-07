@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, BigInteger
+from sqlalchemy import Column, Index, String, DateTime, ForeignKey, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -12,12 +12,9 @@ class FileType(str, Enum):
     JPEG = "image/jpeg"
     GIF = "image/gif"
     WEBP = "image/webp"
-    
     PDF = "application/pdf"
     TXT = "text/plain"
-    
     CSV = "text/csv"
-    
     ZIP = "application/zip"
     
 VIEWABLE_MIME_TYPES = {
@@ -35,10 +32,12 @@ class SyncStatus(str, Enum):
 
 class Document(Base):
     __tablename__ = "documents"
+    __table_args__ = (
+        Index('unique_folder_name', 'folder_id', 'name', unique=True),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid4)
     name = Column(String(255), nullable=False)
-    file_path = Column(String(1024), nullable=False, unique=True, index=True)
     mime_type = Column(String(100), nullable=True)
     file_size = Column(BigInteger, nullable=True)
 

@@ -4,6 +4,7 @@ import hashlib
 import mimetypes
 
 from fastapi import HTTPException, UploadFile
+from sqlalchemy import select
 from core.config import settings
 from repositories.base_repository import BaseRepository
 from repositories.document_repository import DocumentRepository
@@ -19,14 +20,39 @@ class DocumentService:
     @staticmethod
     async def get_document_by_id(db: AsyncSession, document_id: uuid.UUID) -> Optional[Document]:
         return await BaseRepository.get_by_id(Document, db, document_id)
-
+    
     @staticmethod
-    async def get_by_file_path(db: AsyncSession, file_path: str) -> Optional[Document]:
-        return await DocumentRepository.get_by_file_path(db, file_path)
-
+    async def get_by_folder_and_name(db: AsyncSession, folder_id: Optional[uuid.UUID], name: str) -> Optional[Document]:
+        query = select(Document).where(Document.name == name)
+        if folder_id:
+            query = query.where(Document.folder_id == folder_id)
+        else:
+            query = query.where(Document.folder_id is None) # type: ignore
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+    
     @staticmethod
-    async def get_all_file_paths(db: AsyncSession, category_id: uuid.UUID) -> set[str]:
-        return await DocumentRepository.get_all_file_paths(db, category_id)
+    async def get_all_folder_name_pairs(db: AsyncSession, category_id: uuid.UUID) -> set[tuple[str | None, str]]:
+        from models.folder import Folder
+        result = await db.execute(
+            select(Document.name, Folder.path)
+            .join(Folder, Document.folder_id == Folder.id, isouter=True)
+            .where(Document.category_id == category_id)
+        )
+        return {(row[1], row[0]) for row in result.fetchall()} 
+    
+    @staticmethod
+    async def delete_by_folder_and_name(db: AsyncSession, folder_id: Optional[uuid.UUID], name: str) -> None:
+        query = select(Document).where(Document.name == name)
+        if folder_id:
+            query = query.where(Document.folder_id == folder_id)
+        else:
+            query = query.where(Document.folder_id is None) # type: ignore
+        result = await db.execute(query)
+        document = result.scalar_one_or_none()
+        if document:
+            await db.delete(document)
+            await db.commit()
 
     @staticmethod
     async def create_document(db: AsyncSession, document_data: dict) -> Document | None:
@@ -36,21 +62,27 @@ class DocumentService:
         return document
 
     @staticmethod
-    async def delete_by_file_path(db: AsyncSession, file_path: str) -> None:
-        await DocumentRepository.delete_by_file_path(db, file_path)
-
-    @staticmethod
     async def update_document(db: AsyncSession, document_id: uuid.UUID, payload) -> None:
         document = await BaseRepository.get_by_id(model=Document, db=db, entity_id=document_id)
 
-        for field, value in payload.dict(exclude_unset=True).items():
+        if hasattr(payload, 'dict'):
+            data = payload.dict(exclude_unset=True)
+        else:
+            data = payload
+
+        for field, value in data.items():
             setattr(document, field, value)
 
         await BaseRepository.update(db, document)
 
     @staticmethod
-    def get_file_path(document: Document) -> str:
-        return os.path.join(settings.MEDIA_ROOT, "categories", str(document.category_id), str(document.file_path))
+    async def get_file_path(db: AsyncSession, document: Document) -> str:
+        if document.folder_id is None:
+            return os.path.join(settings.MEDIA_ROOT, "categories", str(document.category_id), str(document.name))
+
+        folder = await FolderService.get_folder_by_id(db, document.folder_id)  # type: ignore
+        folder_path = await FolderService.convert_ltree_to_path(folder.path)  # type: ignore
+        return os.path.join(settings.MEDIA_ROOT, "categories", str(document.category_id), folder_path, str(document.name))
 
     @staticmethod
     def is_file_exists(file_path: str) -> bool:
@@ -115,7 +147,7 @@ class DocumentService:
         extension = mimetypes.guess_extension(mime_type) or ""
         safe_name = "".join(c for c in name if c.isalnum() or c in (" ", ".", "_")).rstrip()
         return f"{safe_name}{extension}"
-    
+
     @staticmethod
     async def cleanup_file(file_path: str) -> None:
         try:
@@ -131,14 +163,18 @@ class DocumentService:
 
         mime_type = await DocumentService.get_document_mime_type(file)
         if mime_type not in settings.ALLOWED_MIME_TYPES:
-            raise HTTPException(status_code=400, detail=f"Unsupported file type: {mime_type}. Allowed types: {', '.join(settings.ALLOWED_MIME_TYPES)}")
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported file type: {mime_type}. Allowed types: {', '.join(settings.ALLOWED_MIME_TYPES)}"
+            )
 
         file.file.seek(0, 2)
         file_size = file.file.tell()
         file.file.seek(0)
 
         if file_size > settings.MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail=f"File size ({file_size} bytes) exceeds maximum allowed size ({settings.MAX_FILE_SIZE} bytes)")
+            raise HTTPException(
+                status_code=400, detail=f"File size ({file_size} bytes) exceeds maximum allowed size ({settings.MAX_FILE_SIZE} bytes)"
+            )
 
         return mime_type, file_size
 
@@ -147,7 +183,6 @@ class DocumentService:
         db: AsyncSession,
         name: str,
         mime_type: str,
-        file_path: str,
         file_hash: str,
         file_size: int,
         category_id: uuid.UUID,
@@ -157,7 +192,6 @@ class DocumentService:
             db,
             {
                 "name": name,
-                "file_path": file_path,
                 "file_hash": file_hash,
                 "mime_type": mime_type,
                 "file_size": file_size,

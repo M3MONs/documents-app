@@ -27,7 +27,7 @@ async def get_document_content(
     if not permitted:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this document")
 
-    file_path = DocumentService.get_file_path(document)
+    file_path = await DocumentService.get_file_path(db, document)
 
     if not DocumentService.is_file_exists(file_path):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server")
@@ -51,7 +51,7 @@ async def get_document_metadata(
     if not permitted:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this document")
 
-    file_path = DocumentService.get_file_path(document)
+    file_path = await DocumentService.get_file_path(db, document)
     file_exists = DocumentService.is_file_exists(file_path)
 
     mime_type = str(document.mime_type) if document.mime_type is not None else None
@@ -83,7 +83,7 @@ async def download_document(
     if not permitted:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this document")
 
-    file_path = DocumentService.get_file_path(document)
+    file_path = await DocumentService.get_file_path(db, document)
 
     if not DocumentService.is_file_exists(file_path):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server")

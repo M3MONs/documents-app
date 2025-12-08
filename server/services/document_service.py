@@ -22,8 +22,8 @@ class DocumentService:
         return await BaseRepository.get_by_id(Document, db, document_id)
     
     @staticmethod
-    async def get_by_folder_and_name(db: AsyncSession, folder_id: Optional[uuid.UUID], name: str) -> Optional[Document]:
-        query = select(Document).where(Document.name == name)
+    async def get_by_folder_and_name(db: AsyncSession, category_id: uuid.UUID, folder_id: Optional[uuid.UUID], name: str) -> Optional[Document]:
+        query = select(Document).where(Document.name == name, Document.category_id == category_id)
         if folder_id:
             query = query.where(Document.folder_id == folder_id)
         else:
@@ -42,8 +42,8 @@ class DocumentService:
         return {(row[1], row[0]) for row in result.fetchall()} 
     
     @staticmethod
-    async def delete_by_folder_and_name(db: AsyncSession, folder_id: Optional[uuid.UUID], name: str) -> None:
-        query = select(Document).where(Document.name == name)
+    async def delete_by_folder_and_name(db: AsyncSession, category_id: uuid.UUID, folder_id: Optional[uuid.UUID], name: str) -> None:
+        query = select(Document).where(Document.name == name, Document.category_id == category_id)
         if folder_id:
             query = query.where(Document.folder_id == folder_id)
         else:

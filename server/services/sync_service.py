@@ -111,20 +111,24 @@ class SyncService:
     async def _sync_documents(db: AsyncSession, category_id: uuid.UUID, scanned_docs) -> None:
         for (folder_path, file_name), data in scanned_docs.items():
             folder_id = await SyncService._get_folder_id_by_path(db, category_id, folder_path)
-            doc = await DocumentService.get_by_folder_and_name(db, folder_id, file_name) # type: ignore
+            doc = await DocumentService.get_by_folder_and_name(db, category_id, folder_id, file_name) # type: ignore
             if not doc:
-                await DocumentService.create_document(
-                    db,
-                    {
-                        "name": file_name,
-                        "file_hash": data["file_hash"],
-                        "mime_type": data["mime_type"],
-                        "file_size": data["file_size"],
-                        "category_id": category_id,
-                        "folder_id": folder_id,
-                        "sync_status": "SYNCED",
-                    },
-                )
+                try:
+                    await DocumentService.create_document(
+                        db,
+                        {
+                            "name": file_name,
+                            "file_hash": data["file_hash"],
+                            "mime_type": data["mime_type"],
+                            "file_size": data["file_size"],
+                            "category_id": category_id,
+                            "folder_id": folder_id,
+                            "sync_status": "SYNCED",
+                        },
+                    )
+                except Exception as e:
+                    logger.debug(f"Document {file_name} already exists in category {category_id}: {str(e)}")
+                    await db.rollback()
             elif doc.file_hash != data["file_hash"]:
                 await DocumentService.update_document(
                     db, doc.id, {"file_hash": data["file_hash"], "sync_status": "MODIFIED"} # type: ignore
@@ -143,18 +147,18 @@ class SyncService:
         to_delete = db_docs - scanned_docs
         for folder_path, name in to_delete:
             folder_id = await SyncService._get_folder_id_by_path(db, category_id, folder_path)
-            await DocumentService.delete_by_folder_and_name(db, folder_id, name) # type: ignore
+            await DocumentService.delete_by_folder_and_name(db, category_id, folder_id, name) # type: ignore
 
     @staticmethod
-    async def _get_parent_folder_id(db: AsyncSession, category_id: uuid.UUID, parent_path: str | None) -> str | None:
+    async def _get_parent_folder_id(db: AsyncSession, category_id: uuid.UUID, parent_path: str | None) -> uuid.UUID | None:
         if not parent_path:
             return None
         parent = await FolderService.get_by_path(db, category_id, parent_path)
-        return str(parent.id) if parent else None
+        return parent.id if parent else None # type: ignore
 
     @staticmethod
-    async def _get_folder_id_by_path(db: AsyncSession, category_id: uuid.UUID, folder_path: str | None) -> str | None:
+    async def _get_folder_id_by_path(db: AsyncSession, category_id: uuid.UUID, folder_path: str | None) -> uuid.UUID | None:
         if not folder_path:
             return None
         folder = await FolderService.get_by_path(db, category_id, folder_path)
-        return str(folder.id) if folder else None
+        return folder.id if folder else None # type: ignore

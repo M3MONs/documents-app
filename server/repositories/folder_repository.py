@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy_utils import Ltree
 from sqlalchemy.future import select
-from sqlalchemy import delete, exists, func
+from sqlalchemy import delete, exists, func, or_, and_, literal
 from sqlalchemy.orm import selectinload
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from models.folder import Folder, folder_department_permissions, folder_user_permissions
@@ -199,14 +199,27 @@ class FolderRepository:
     async def get_paginated_departments_assigned_to_folder(
         db: AsyncSession, folder_id: uuid.UUID, pagination: PaginationParams
     ) -> PaginationResponse:
-        folder_query = select(Folder).options(selectinload(Folder.category)).where(Folder.id == folder_id)
-        folder_result = await db.execute(folder_query)
-        folder = folder_result.scalar_one_or_none()
-
+        folder = await FolderRepository._get_folder_with_category(db, folder_id)
         if not folder:
             return PaginationResponse(total=0, items=[])
 
-        query = (
+        query = FolderRepository._build_department_query(folder)
+        total = await FolderRepository._get_total_departments(db, folder)
+        query = FolderRepository._apply_pagination_and_ordering(query, pagination)
+        rows = await FolderRepository._execute_department_query(db, query)
+        department_schemas = FolderRepository._process_department_rows(rows)
+
+        return PaginationResponse(total=total, items=department_schemas)
+
+    @staticmethod
+    async def _get_folder_with_category(db: AsyncSession, folder_id: uuid.UUID) -> Optional[Folder]:
+        folder_query = select(Folder).options(selectinload(Folder.category)).where(Folder.id == folder_id)
+        folder_result = await db.execute(folder_query)
+        return folder_result.scalar_one_or_none()
+
+    @staticmethod
+    def _build_department_query(folder: Folder):
+        return (
             select(Department)
             .where(Department.organization_id == folder.category.organization_id)
             .add_columns(
@@ -214,48 +227,62 @@ class FolderRepository:
                     select(1)
                     .select_from(folder_department_permissions)
                     .where(
-                        folder_department_permissions.c.folder_id == folder_id,
+                        folder_department_permissions.c.folder_id == folder.id,
                         folder_department_permissions.c.department_id == Department.id,
                     )
                 ).label("is_assigned")
             )
         )
 
+    @staticmethod
+    async def _get_total_departments(db: AsyncSession, folder: Folder) -> int:
         total_query = select(func.count()).select_from(Department).where(Department.organization_id == folder.category.organization_id)
         total_result = await db.execute(total_query)
-        total = total_result.scalar_one()
+        return total_result.scalar_one()
 
+    @staticmethod
+    def _apply_pagination_and_ordering(query, pagination: PaginationParams):
         if pagination.ordering:
             ordering_column = getattr(Department, pagination.ordering, None)
             if ordering_column is not None:
                 query = query.order_by(ordering_column.desc() if pagination.ordering_desc else ordering_column.asc())
 
         query = query.offset(pagination.offset).limit(pagination.page_size)
+        return query
 
+    @staticmethod
+    async def _execute_department_query(db: AsyncSession, query) -> Sequence:
         result = await db.execute(query)
-        rows = result.all()
+        return result.all()
 
+    @staticmethod
+    def _process_department_rows(rows: Sequence) -> list:
         department_schemas = []
         for row in rows:
             department, is_assigned = row
             department_dict = DepartmentWithAssignment.model_validate(department).dict()
             department_dict["is_assigned"] = is_assigned
             department_schemas.append(DepartmentWithAssignment(**department_dict))
-
-        return PaginationResponse(total=total, items=department_schemas)
+        return department_schemas
 
     @staticmethod
     async def get_paginated_users_assigned_to_folder(db: AsyncSession, folder_id: uuid.UUID, pagination: PaginationParams) -> PaginationResponse:
-        from models.user import User
-
-        folder_query = select(Folder).options(selectinload(Folder.category)).where(Folder.id == folder_id)
-        folder_result = await db.execute(folder_query)
-        folder = folder_result.scalar_one_or_none()
-
+        folder = await FolderRepository._get_folder_with_category(db, folder_id)
         if not folder:
             return PaginationResponse(total=0, items=[])
 
-        query = (
+        query = FolderRepository._build_user_query(folder)
+        total = await FolderRepository._get_total_users(db, folder)
+        query = FolderRepository._apply_user_pagination_and_ordering(query, pagination)
+        rows = await FolderRepository._execute_user_query(db, query)
+        user_schemas = FolderRepository._process_user_rows(rows)
+
+        return PaginationResponse(total=total, items=user_schemas)
+
+    @staticmethod
+    def _build_user_query(folder: Folder):
+        from models.user import User
+        return (
             select(User)
             .where(User.additional_organizations.any(Organization.id == folder.category.organization_id))
             .add_columns(
@@ -263,37 +290,47 @@ class FolderRepository:
                     select(1)
                     .select_from(folder_user_permissions)
                     .where(
-                        folder_user_permissions.c.folder_id == folder_id,
+                        folder_user_permissions.c.folder_id == folder.id,
                         folder_user_permissions.c.user_id == User.id,
                     )
                 ).label("is_assigned")
             )
         )
 
+    @staticmethod
+    async def _get_total_users(db: AsyncSession, folder: Folder) -> int:
+        from models.user import User
         total_query = (
             select(func.count()).select_from(User).where(User.additional_organizations.any(Organization.id == folder.category.organization_id))
         )
         total_result = await db.execute(total_query)
-        total = total_result.scalar_one()
+        return total_result.scalar_one()
 
+    @staticmethod
+    def _apply_user_pagination_and_ordering(query, pagination: PaginationParams):
+        from models.user import User
         if pagination.ordering:
             ordering_column = getattr(User, pagination.ordering, None)
             if ordering_column is not None:
                 query = query.order_by(ordering_column.desc() if pagination.ordering_desc else ordering_column.asc())
 
         query = query.offset(pagination.offset).limit(pagination.page_size)
+        return query
 
+    @staticmethod
+    async def _execute_user_query(db: AsyncSession, query) -> Sequence:
         result = await db.execute(query)
-        rows = result.all()
+        return result.all()
 
+    @staticmethod
+    def _process_user_rows(rows: Sequence) -> list:
         user_schemas = []
         for row in rows:
             user, is_assigned = row
             user_dict = {column.name: getattr(user, column.name) for column in user.__table__.columns}
             user_dict["is_assigned"] = is_assigned
             user_schemas.append(user_dict)
-
-        return PaginationResponse(total=total, items=user_schemas)
+        return user_schemas
 
     @staticmethod
     async def get_all_child_folders(db: AsyncSession, folder_id: uuid.UUID) -> Sequence[Folder]:
@@ -343,7 +380,6 @@ class FolderRepository:
         ordering: Optional[str] = None,
         ordering_desc: bool = False,
     ) -> tuple[Sequence[Folder], int]:
-        from sqlalchemy import or_, and_, literal
 
         base_conditions = [Folder.category_id == category_id]
 
@@ -356,39 +392,55 @@ class FolderRepository:
             base_conditions.append(Folder.name.ilike(f"%{search_query}%"))
 
         if not is_superuser:
-            permission_conditions = [
-                Folder.is_private == False,  # noqa: E712
-            ]
+            permission_conditions = FolderRepository._build_permission_conditions(user_id, user_department_ids)
+            base_conditions.append(or_(*permission_conditions))
 
-            user_assigned_subquery = (
+        total = await FolderRepository._get_total_count(db, base_conditions)
+
+        query = FolderRepository._build_query(base_conditions, ordering, ordering_desc, skip, limit)
+        folders = await FolderRepository._execute_query(db, query)
+
+        return folders, total
+
+    @staticmethod
+    def _build_permission_conditions(user_id: uuid.UUID, user_department_ids: list[str]) -> list:
+        permission_conditions = [
+            Folder.is_private == False,  # noqa: E712
+        ]
+
+        user_assigned_subquery = (
+            select(literal(1))
+            .select_from(folder_user_permissions)
+            .where(
+                folder_user_permissions.c.folder_id == Folder.id,
+                folder_user_permissions.c.user_id == user_id,
+            )
+            .exists()
+        )
+        permission_conditions.append(user_assigned_subquery)
+
+        if user_department_ids:
+            dept_assigned_subquery = (
                 select(literal(1))
-                .select_from(folder_user_permissions)
+                .select_from(folder_department_permissions)
                 .where(
-                    folder_user_permissions.c.folder_id == Folder.id,
-                    folder_user_permissions.c.user_id == user_id,
+                    folder_department_permissions.c.folder_id == Folder.id,
+                    folder_department_permissions.c.department_id.in_(user_department_ids),
                 )
                 .exists()
             )
-            permission_conditions.append(user_assigned_subquery)
+            permission_conditions.append(dept_assigned_subquery)
 
-            if user_department_ids:
-                dept_assigned_subquery = (
-                    select(literal(1))
-                    .select_from(folder_department_permissions)
-                    .where(
-                        folder_department_permissions.c.folder_id == Folder.id,
-                        folder_department_permissions.c.department_id.in_(user_department_ids),
-                    )
-                    .exists()
-                )
-                permission_conditions.append(dept_assigned_subquery)
+        return permission_conditions
 
-            base_conditions.append(or_(*permission_conditions))
-
+    @staticmethod
+    async def _get_total_count(db: AsyncSession, base_conditions: list) -> int:
         count_query = select(func.count(Folder.id)).where(and_(*base_conditions))
         count_result = await db.execute(count_query)
-        total = count_result.scalar() or 0
+        return count_result.scalar() or 0
 
+    @staticmethod
+    def _build_query(base_conditions: list, ordering: Optional[str], ordering_desc: bool, skip: int, limit: int):
         query = select(Folder).where(and_(*base_conditions))
 
         if ordering:
@@ -401,9 +453,12 @@ class FolderRepository:
             query = query.order_by(Folder.name)
 
         query = query.offset(skip).limit(limit)
-        result = await db.execute(query)
+        return query
 
-        return result.scalars().all(), total
+    @staticmethod
+    async def _execute_query(db: AsyncSession, query) -> Sequence[Folder]:
+        result = await db.execute(query)
+        return result.scalars().all()
 
 
     @staticmethod

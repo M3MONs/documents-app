@@ -10,7 +10,7 @@ const useCategoryPageState = (categoryId?: string) => {
     const searchQuery = searchParams.get("q") || "";
     const page = parseInt(searchParams.get("page") || "1", 10);
 
-    const currentFolderId = searchParams.get("path") || null;
+    const currentFolderId = searchParams.get("folder_id") || null;
 
     const [folderHistory, setFolderHistory] = useState<Array<{ id: string | null; name: string }>>([
         { id: null, name: "Loading..." },
@@ -45,7 +45,7 @@ const useCategoryPageState = (categoryId?: string) => {
         (folderId: string, folderName: string) => {
             setSearchParams((prev: URLSearchParams) => {
                 const newParams = new URLSearchParams(prev);
-                newParams.set("path", folderId);
+                newParams.set("folder_id", folderId);
                 newParams.set("page", "1");
                 newParams.delete("q");
                 return newParams;
@@ -61,7 +61,7 @@ const useCategoryPageState = (categoryId?: string) => {
             if (index === 0) {
                 setSearchParams((prev: URLSearchParams) => {
                     const newParams = new URLSearchParams(prev);
-                    newParams.delete("path");
+                    newParams.delete("folder_id");
                     newParams.set("page", "1");
                     newParams.delete("q");
                     return newParams;
@@ -71,7 +71,7 @@ const useCategoryPageState = (categoryId?: string) => {
                 if (targetFolder && targetFolder.id) {
                     setSearchParams((prev: URLSearchParams) => {
                         const newParams = new URLSearchParams(prev);
-                        newParams.set("path", targetFolder.id!);
+                        newParams.set("folder_id", targetFolder.id!);
                         newParams.set("page", "1");
                         newParams.delete("q");
                         return newParams;
@@ -90,7 +90,7 @@ const useCategoryPageState = (categoryId?: string) => {
         if (previousFolder.id === null) {
             setSearchParams((prev: URLSearchParams) => {
                 const newParams = new URLSearchParams(prev);
-                newParams.delete("path");
+                newParams.delete("folder_id");
                 newParams.set("page", "1");
                 newParams.delete("q");
                 return newParams;
@@ -98,7 +98,7 @@ const useCategoryPageState = (categoryId?: string) => {
         } else {
             setSearchParams((prev: URLSearchParams) => {
                 const newParams = new URLSearchParams(prev);
-                newParams.set("path", previousFolder.id!);
+                newParams.set("folder_id", previousFolder.id!);
                 newParams.set("page", "1");
                 newParams.delete("q");
                 return newParams;

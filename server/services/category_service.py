@@ -49,7 +49,7 @@ class CategoryService:
 
     @staticmethod
     async def get_paginated_categories(
-        db: AsyncSession, pagination: PaginationParams, organization_ids: list[str]| list[uuid.UUID] | None = None
+        db: AsyncSession, pagination: PaginationParams, organization_ids: list[str] | list[uuid.UUID] | None = None
     ) -> PaginationResponse:
         return await BaseRepository.get_paginated(
             model=Category,
@@ -159,6 +159,32 @@ class CategoryService:
         user_id: uuid.UUID,
         search_query: str | None = None,
     ) -> CategoryContentResponse:
+        if search_query:
+            return await CategoryService._get_category_content_with_search(db, category_id, folder_id, pagination, user_id, search_query)
+        else:
+            return await CategoryService._get_category_content_without_search(db, category_id, folder_id, pagination, user_id)
+
+    @staticmethod
+    async def get_folder_breadcrumb(db: AsyncSession, category, folder_id: uuid.UUID) -> list[dict]:
+        from repositories.folder_repository import FolderRepository
+
+        hierarchy = await FolderRepository.get_folder_hierarchy(db, folder_id)
+
+        breadcrumb = [{"id": None, "name": category.name}]
+        for folder in hierarchy:
+            breadcrumb.append({"id": str(folder.id), "name": str(folder.name)})
+
+        return breadcrumb
+
+    @staticmethod
+    async def _get_category_content_with_search(
+        db: AsyncSession,
+        category_id: uuid.UUID,
+        folder_id: uuid.UUID | None,
+        pagination: PaginationParams,
+        user_id: uuid.UUID,
+        search_query: str,
+    ) -> CategoryContentResponse:
         from repositories.folder_repository import FolderRepository
         from repositories.document_repository import DocumentRepository
         from services.user_service import UserService
@@ -169,8 +195,30 @@ class CategoryService:
         is_superuser = bool(user.is_superuser) if user else False
         user_department_ids = [dept.id for dept in user.departments] if user else []
 
-        if search_query:
-            folders, folder_count = await FolderRepository.search_folders_recursive_with_permissions(
+        folders, folder_count = await FolderRepository.search_folders_recursive_with_permissions(
+            db=db,
+            category_id=category_id,
+            user_id=user_id,
+            user_department_ids=user_department_ids,
+            is_superuser=is_superuser,
+            search_query=search_query,
+            parent_folder_id=folder_id,
+            skip=skip,
+            limit=pagination.page_size,
+            ordering=pagination.ordering,
+            ordering_desc=pagination.ordering_desc,
+        )
+
+        folders_returned = len(folders)
+        remaining_slots = pagination.page_size - folders_returned
+
+        documents = []
+        document_count = 0
+        if remaining_slots > 0 or folders_returned == 0:
+            doc_skip = max(0, skip - folder_count) if skip >= folder_count else 0
+            doc_limit = remaining_slots if folders_returned > 0 else pagination.page_size
+
+            documents, document_count = await DocumentRepository.search_documents_recursive_with_permissions(
                 db=db,
                 category_id=category_id,
                 user_id=user_id,
@@ -178,48 +226,39 @@ class CategoryService:
                 is_superuser=is_superuser,
                 search_query=search_query,
                 parent_folder_id=folder_id,
-                skip=skip,
-                limit=pagination.page_size,
+                skip=doc_skip,
+                limit=doc_limit,
                 ordering=pagination.ordering,
                 ordering_desc=pagination.ordering_desc,
             )
 
-            folders_returned = len(folders)
-            remaining_slots = pagination.page_size - folders_returned
+        total_items = folder_count + document_count
+        total_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 1
 
-            documents = []
-            document_count = 0
-            if remaining_slots > 0 or folders_returned == 0:
-                doc_skip = max(0, skip - folder_count) if skip >= folder_count else 0
-                doc_limit = remaining_slots if folders_returned > 0 else pagination.page_size
+        return CategoryContentResponse(
+            folders=[FolderItem(id=str(f.id), name=str(f.name), is_private=bool(f.is_private)) for f in folders],
+            documents=[DocumentItem(id=str(d.id), name=str(d.name), mime_type=str(d.mime_type)) for d in documents],
+            pagination=PaginationInfo(
+                page=pagination.page,
+                page_size=pagination.page_size,
+                total=total_items,
+                total_pages=total_pages,
+            ),
+        )
 
-                documents, document_count = await DocumentRepository.search_documents_recursive_with_permissions(
-                    db=db,
-                    category_id=category_id,
-                    user_id=user_id,
-                    user_department_ids=user_department_ids,
-                    is_superuser=is_superuser,
-                    search_query=search_query,
-                    parent_folder_id=folder_id,
-                    skip=doc_skip,
-                    limit=doc_limit,
-                    ordering=pagination.ordering,
-                    ordering_desc=pagination.ordering_desc,
-                )
+    @staticmethod
+    async def _get_category_content_without_search(
+        db: AsyncSession,
+        category_id: uuid.UUID,
+        folder_id: uuid.UUID | None,
+        pagination: PaginationParams,
+        user_id: uuid.UUID,
+    ) -> CategoryContentResponse:
+        from repositories.folder_repository import FolderRepository
+        from repositories.document_repository import DocumentRepository
+        from services.folder_service import FolderService
 
-            total_items = folder_count + document_count
-            total_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 1
-
-            return CategoryContentResponse(
-                folders=[FolderItem(id=str(f.id), name=str(f.name), is_private=bool(f.is_private)) for f in folders],
-                documents=[DocumentItem(id=str(d.id), name=str(d.name), mime_type=str(d.mime_type)) for d in documents],
-                pagination=PaginationInfo(
-                    page=pagination.page,
-                    page_size=pagination.page_size,
-                    total=total_items,
-                    total_pages=total_pages,
-                ),
-            )
+        skip = (pagination.page - 1) * pagination.page_size
 
         folder_count = await FolderRepository.count_folders_by_parent(
             db, category_id, folder_id, filter_field=pagination.filter_field, filter_value=pagination.filter_value
@@ -236,8 +275,6 @@ class CategoryService:
             ordering=pagination.ordering,
             ordering_desc=pagination.ordering_desc,
         )
-
-        from services.folder_service import FolderService
 
         accessible_folders = []
         for folder in folders:
@@ -279,15 +316,3 @@ class CategoryService:
                 total_pages=total_pages,
             ),
         )
-
-    @staticmethod
-    async def get_folder_breadcrumb(db: AsyncSession, category, folder_id: uuid.UUID) -> list[dict]:
-        from repositories.folder_repository import FolderRepository
-
-        hierarchy = await FolderRepository.get_folder_hierarchy(db, folder_id)
-
-        breadcrumb = [{"id": None, "name": category.name}]
-        for folder in hierarchy:
-            breadcrumb.append({"id": str(folder.id), "name": str(folder.name)})
-
-        return breadcrumb

@@ -72,7 +72,7 @@ async def create_document(
         document_name = await DocumentService.generate_document_name(name, mime_type)
         file_path = await DocumentService.generate_file_path(db, document_name, folder_id_uuid)
 
-        existing_document = await DocumentService.get_by_folder_and_name(db, folder_id_uuid, document_name)
+        existing_document = await DocumentService.get_by_folder_and_name(db, category_id_uuid, folder_id_uuid, document_name)
         if existing_document:
             raise HTTPException(status_code=409, detail=f"Document with name '{document_name}' already exists in this location")
 

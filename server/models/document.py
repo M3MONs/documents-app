@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Index, String, DateTime, ForeignKey, BigInteger
+from sqlalchemy import Column, Index, String, DateTime, ForeignKey, BigInteger, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -33,7 +33,9 @@ class SyncStatus(str, Enum):
 class Document(Base):
     __tablename__ = "documents"
     __table_args__ = (
-        Index('unique_folder_name', 'folder_id', 'name', unique=True),
+        Index('unique_category_folder_name', 'category_id', 'folder_id', 'name', unique=True),
+        Index('unique_category_no_folder_name', 'category_id', 'name', unique=True, 
+            postgresql_where=text('folder_id IS NULL')),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid4)

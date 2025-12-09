@@ -81,15 +81,18 @@ class DocumentService:
         if not document:
             raise HTTPException(status_code=404, detail="Document not found")
 
-        extension = mimetypes.guess_extension(document.mime_type) or "" # type: ignore
-    
+        extension = mimetypes.guess_extension(document.mime_type) or ""  # type: ignore
+
         if extension and not new_name.lower().endswith(extension.lower()):
             new_name += extension
 
-        await DocumentService._rename_document_file(db, document, new_name)
-
-        document.name = new_name  # type: ignore
-        await BaseRepository.update(db, document)
+        try:
+            await DocumentService._rename_document_file(db, document, new_name)
+            document.name = new_name  # type: ignore
+            await BaseRepository.update(db, document)
+        except Exception:
+            await db.rollback()
+            raise
 
     @staticmethod
     async def get_file_path(db: AsyncSession, document: Document) -> str:
@@ -234,4 +237,14 @@ class DocumentService:
 
         file_path = await DocumentService.get_file_path(db, document)
         new_file_path = os.path.join(os.path.dirname(file_path), new_name)
-        os.rename(file_path, new_file_path)
+
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=500, detail=f"File not found on filesystem: {file_path}")
+
+        if os.path.exists(new_file_path):
+            raise HTTPException(status_code=409, detail=f"File with name '{new_name}' already exists in the filesystem")
+
+        try:
+            os.rename(file_path, new_file_path)
+        except OSError as e:
+            raise HTTPException(status_code=500, detail=f"Failed to rename file on filesystem: {str(e)}")

@@ -20,6 +20,7 @@ interface ContentListProps {
   showBackButton: boolean;
   onItemClick: (item: ContentItemType) => void;
   onManageClick: (item: ContentItemType) => void;
+  onDeleteClick: (item: ContentItemType) => void;
   onBackClick: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
@@ -36,6 +37,7 @@ const ContentList = memo(
     showBackButton,
     onItemClick,
     onManageClick,
+    onDeleteClick,
     onBackClick,
     onPreviousPage,
     onNextPage,
@@ -62,6 +64,7 @@ const ContentList = memo(
                 canManageCategory={canManageCategory || false}
                 onItemClick={handleItemClick}
                 onManageClick={onManageClick}
+                onDeleteClick={onDeleteClick}
               />
             ))}
           </>

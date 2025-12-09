@@ -16,3 +16,6 @@ class DocumentMetadata(BaseModel):
     updated_at: datetime
     file_exists: bool
     viewable: bool
+
+class UpdateDocumentRequest(BaseModel):
+    name: str

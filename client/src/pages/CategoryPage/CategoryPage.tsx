@@ -14,11 +14,12 @@ import FolderManageDialog from "./components/Manager/FolderManageDialog";
 import { useAuth } from "@/context/AuthContext";
 import { StaticRoles } from "@/constants/roles";
 import AddDocumentDialog from "./components/Document/AddDocumentDialog";
+import DocumentManageDialog from "./components/Manager/DocumentManageDialog";
 
 const CategoryPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const { user } = useAuth();
-  const [selectedFolder, setSelectedFolder] = useState<ContentItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [isAddDocumentDialogOpen, setIsAddDocumentDialogOpen] = useState(false);
 
   const {
@@ -115,12 +116,18 @@ const CategoryPage = () => {
     navigateBack();
   }, [navigateBack]);
 
-  const handleManageFolder = useCallback(
+  const handleManageClick = useCallback(
     (item: ContentItem) => {
-      setSelectedFolder(item);
+      setSelectedItem(item);
     },
-    [setSelectedFolder]
+    [setSelectedItem]
   );
+
+  const handleDeleteClick = useCallback((item: ContentItem) => {
+    if (item.type === "folder") {
+    } else if (item.type === "document") {
+    }
+  }, []);
 
   if (!categoryId) {
     return <SelectCategoryInfo />;
@@ -152,7 +159,8 @@ const CategoryPage = () => {
           pagination={data?.pagination}
           showBackButton={!!currentFolderId}
           onItemClick={handleItemClick}
-          onManageClick={handleManageFolder}
+          onManageClick={handleManageClick}
+          onDeleteClick={handleDeleteClick}
           onBackClick={handleNavigateBack}
           onPreviousPage={() => setPage(Math.max(1, page - 1))}
           onNextPage={() => setPage(page + 1)}
@@ -160,7 +168,13 @@ const CategoryPage = () => {
 
         <DocumentDialog selectedDocument={selectedDocument} setSelectedDocument={setSelectedDocument} />
 
-        <FolderManageDialog selectedFolder={selectedFolder} setSelectedFolder={setSelectedFolder} />
+        {selectedItem && selectedItem.type === "folder" && (
+          <FolderManageDialog selectedFolder={selectedItem} setSelectedFolder={setSelectedItem} />
+        )}
+
+        {selectedItem && selectedItem.type === "document" && (
+          <DocumentManageDialog selectedDocument={selectedItem} setSelectedDocument={setSelectedItem} />
+        )}
 
         <AddDocumentDialog
           isOpen={isAddDocumentDialogOpen}

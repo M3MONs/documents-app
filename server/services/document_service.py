@@ -20,34 +20,33 @@ class DocumentService:
     @staticmethod
     async def get_document_by_id(db: AsyncSession, document_id: uuid.UUID) -> Optional[Document]:
         return await BaseRepository.get_by_id(Document, db, document_id)
-    
+
     @staticmethod
     async def get_by_folder_and_name(db: AsyncSession, category_id: uuid.UUID, folder_id: Optional[uuid.UUID], name: str) -> Optional[Document]:
         query = select(Document).where(Document.name == name, Document.category_id == category_id)
         if folder_id:
             query = query.where(Document.folder_id == folder_id)
         else:
-            query = query.where(Document.folder_id is None) # type: ignore
+            query = query.where(Document.folder_id is None)  # type: ignore
         result = await db.execute(query)
         return result.scalar_one_or_none()
-    
+
     @staticmethod
     async def get_all_folder_name_pairs(db: AsyncSession, category_id: uuid.UUID) -> set[tuple[str | None, str]]:
         from models.folder import Folder
+
         result = await db.execute(
-            select(Document.name, Folder.path)
-            .join(Folder, Document.folder_id == Folder.id, isouter=True)
-            .where(Document.category_id == category_id)
+            select(Document.name, Folder.path).join(Folder, Document.folder_id == Folder.id, isouter=True).where(Document.category_id == category_id)
         )
-        return {(row[1], row[0]) for row in result.fetchall()} 
-    
+        return {(row[1], row[0]) for row in result.fetchall()}
+
     @staticmethod
     async def delete_by_folder_and_name(db: AsyncSession, category_id: uuid.UUID, folder_id: Optional[uuid.UUID], name: str) -> None:
         query = select(Document).where(Document.name == name, Document.category_id == category_id)
         if folder_id:
             query = query.where(Document.folder_id == folder_id)
         else:
-            query = query.where(Document.folder_id is None) # type: ignore
+            query = query.where(Document.folder_id is None)  # type: ignore
         result = await db.execute(query)
         document = result.scalar_one_or_none()
         if document:
@@ -65,7 +64,7 @@ class DocumentService:
     async def update_document(db: AsyncSession, document_id: uuid.UUID, payload) -> None:
         document = await BaseRepository.get_by_id(model=Document, db=db, entity_id=document_id)
 
-        if hasattr(payload, 'dict'):
+        if hasattr(payload, "dict"):
             data = payload.dict(exclude_unset=True)
         else:
             data = payload
@@ -73,6 +72,23 @@ class DocumentService:
         for field, value in data.items():
             setattr(document, field, value)
 
+        await BaseRepository.update(db, document)
+
+    @staticmethod
+    async def update_document_name(db: AsyncSession, document_id: uuid.UUID, new_name: str) -> None:
+        document = await BaseRepository.get_by_id(model=Document, db=db, entity_id=document_id)
+
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        extension = mimetypes.guess_extension(document.mime_type) or "" # type: ignore
+    
+        if extension and not new_name.lower().endswith(extension.lower()):
+            new_name += extension
+
+        await DocumentService._rename_document_file(db, document, new_name)
+
+        document.name = new_name  # type: ignore
         await BaseRepository.update(db, document)
 
     @staticmethod
@@ -200,3 +216,22 @@ class DocumentService:
                 "sync_status": "SYNCED",
             },
         )
+
+    @staticmethod
+    async def _rename_document_file(db: AsyncSession, document: Document, new_name: str) -> None:
+        if document.name == new_name:  # type: ignore
+            return
+
+        existing_document = await DocumentService.get_by_folder_and_name(
+            db,
+            document.category_id,  # type: ignore
+            document.folder_id,  # type: ignore
+            new_name,
+        )
+
+        if existing_document:
+            raise HTTPException(status_code=409, detail=f"Document with name '{new_name}' already exists in this location")
+
+        file_path = await DocumentService.get_file_path(db, document)
+        new_file_path = os.path.join(os.path.dirname(file_path), new_name)
+        os.rename(file_path, new_file_path)

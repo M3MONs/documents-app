@@ -8,6 +8,7 @@ from core.database import get_db
 from models.user import User
 from repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession
+from schemas.document import UpdateDocumentRequest
 from services.document_service import DocumentService
 from services.category_service import CategoryService
 
@@ -43,7 +44,7 @@ async def create_document(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> dict:
+) -> None:
     document_path: Optional[str] = None
 
     try:
@@ -70,7 +71,6 @@ async def create_document(
         )
 
         document_name = await DocumentService.generate_document_name(name, mime_type)
-        file_path = await DocumentService.generate_file_path(db, document_name, folder_id_uuid)
 
         existing_document = await DocumentService.get_by_folder_and_name(db, category_id_uuid, folder_id_uuid, document_name)
         if existing_document:
@@ -96,19 +96,49 @@ async def create_document(
             await DocumentService.cleanup_file(document_path)
             raise HTTPException(status_code=500, detail="Failed to save document metadata to database") from db_error
 
-        return {
-            "message": "Document created successfully",
-            "document": {
-                "name": document_name,
-                "file_path": file_path,
-                "file_size": file_size,
-                "mime_type": mime_type,
-            },
-        }
-
     except HTTPException:
         raise
     except Exception as e:
         if document_path:
             await DocumentService.cleanup_file(document_path)
         raise HTTPException(status_code=500, detail="An unexpected error occurred while creating the document") from e
+
+
+@router.put("/{document_id}")
+async def update_document(
+    document_id: str,
+    request: UpdateDocumentRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    try:
+        try:
+            document_id_uuid = uuid.UUID(document_id)
+            name = request.name
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid UUID format: {str(e)}")
+
+        if not name or not name.strip():
+            raise HTTPException(status_code=400, detail="Name is required and cannot be empty")
+        name = name.strip()
+
+        document = await DocumentService.get_document_by_id(db, document_id_uuid)
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        category = await CategoryService.get_category_by_id(db, document.category_id)  # type: ignore
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+        await verify_category_manager_access(
+            db,
+            current_user,
+            category.organization_id,  # type: ignore
+        )
+
+        await DocumentService.update_document_name(db, document_id_uuid, name)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="An unexpected error occurred while updating the document") from e

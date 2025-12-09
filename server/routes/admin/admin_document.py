@@ -141,4 +141,4 @@ async def update_document(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail="An unexpected error occurred while updating the document") from e
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while updating the document: {str(e)}") from e

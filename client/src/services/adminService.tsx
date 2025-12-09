@@ -323,5 +323,10 @@ export default class AdminService {
             },
         });
         return response.data;
-    }
+    };
+
+    static updateDocument = async (documentId: string, payload: { name: string }) => {
+        const response = await apiClient.put(`${URL}/documents/${documentId}`, payload);
+        return response.data;
+    };
 }

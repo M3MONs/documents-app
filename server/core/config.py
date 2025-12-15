@@ -16,6 +16,9 @@ class Settings(BaseSettings):
         "application/zip",
     }
     MAX_FILE_SIZE: int = 10 * 1024 * 1024
+    
+    ADMIN_LOGIN: str = ""
+    ADMIN_PASSWORD: str = ""
 
     class Config:
         env_file = ".env"

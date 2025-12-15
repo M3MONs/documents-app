@@ -7,18 +7,19 @@ import SettingsTab from "./tabs/SettingsTab.tsx";
 import UsersTab from "./tabs/UsersTab.tsx";
 
 interface FolderManageDialogProps {
+  isOpen: boolean;
   selectedFolder: any | null;
-  setSelectedFolder: (folder: any | null) => void;
+  onClose: () => void;
 }
 
-const FolderManageDialog = ({ selectedFolder, setSelectedFolder }: FolderManageDialogProps) => {
+const FolderManageDialog = ({ isOpen, selectedFolder, onClose }: FolderManageDialogProps) => {
   const [activeTab, setActiveTab] = useState("settings");
 
   return (
     <Dialog
-      open={!!selectedFolder}
+      open={isOpen}
       onOpenChange={(open) => {
-        if (!open) setSelectedFolder(null);
+        if (!open) onClose();
       }}
     >
       <DialogContent

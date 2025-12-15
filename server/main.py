@@ -18,6 +18,9 @@ from routes.admin import (
 )
 from core.roles import StaticRole
 from schemas.role import RoleCreatePayload
+from core.security import hash_password
+from core.config import settings
+from services.user_service import UserService
 from services.role_service import RoleService
 
 
@@ -30,6 +33,26 @@ async def lifespan(app: FastAPI):
             if await RoleService.is_unique_name(db, role_data["name"]):
                 payload = RoleCreatePayload(**role_data)
                 await RoleService.create_role(db, payload)
+                
+        admin_login = settings.ADMIN_LOGIN
+        admin_password = settings.ADMIN_PASSWORD
+        
+        if admin_login == "" or admin_password == "":
+            logging.warning("Admin credentials are not set. Please set ADMIN_LOGIN and ADMIN_PASSWORD in the .env file.")
+        else:
+            existing_admin = await UserService.get_user_by_username(db, admin_login)
+            if not existing_admin:
+                from models.user import User
+                admin_user = User(
+                    username=admin_login,
+                    email=f"{admin_login}@local.com",
+                    hashed_password=hash_password(admin_password),
+                    is_active=True,
+                    is_superuser=True,
+                )
+                await UserService.create_user(db, admin_user)
+                logging.info(f"Admin user '{admin_login}' created.")
+        
     yield
 
 

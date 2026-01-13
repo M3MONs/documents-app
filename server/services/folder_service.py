@@ -8,7 +8,7 @@ from models.folder import Folder
 from repositories.folder_repository import FolderRepository
 from repositories.base_repository import BaseRepository
 from schemas.pagination import PaginationResponse
-from schemas.folder import FolderUpdate
+from schemas.folder import FolderUpdate, FolderTreeNode
 from core.config import settings
 from services.user_service import UserService
 
@@ -178,3 +178,22 @@ class FolderService:
     @staticmethod
     async def convert_ltree_to_path(ltree_str: Any) -> str:
         return str(ltree_str).replace(".", os.sep)
+    
+    @staticmethod
+    async def get_category_folder_tree(db: AsyncSession, category_id: uuid.UUID) -> list[FolderTreeNode]:
+        root_folders = await FolderRepository.get_folders_by_parent(db, category_id, parent_id=None)
+        tree = []
+        for folder in root_folders:
+            tree.append(await FolderService._build_folder_tree_node(db, folder))
+        return tree
+
+    @staticmethod
+    async def _build_folder_tree_node(db: AsyncSession, folder: Folder) -> FolderTreeNode:
+        children_folders = await FolderRepository.get_folders_by_parent(db, folder.category_id, parent_id=folder.id)  # type: ignore
+        children = [await FolderService._build_folder_tree_node(db, child) for child in children_folders]
+        
+        return FolderTreeNode(
+            id=str(folder.id),  # type: ignore
+            name=folder.name,  # type: ignore
+            children=children
+        )

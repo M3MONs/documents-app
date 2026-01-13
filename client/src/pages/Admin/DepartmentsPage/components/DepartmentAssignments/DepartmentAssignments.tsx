@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Department } from "@/types/department";
 import React, { useState } from "react";
@@ -37,14 +36,6 @@ const DepartmentAssignments = ({ isOpen, selectedDepartment, onClose }: Departme
                             <UsersTab selectedDepartment={selectedDepartment} />
                         </TabsContent>
                     </Tabs>
-
-                    <div className="mt-4 flex justify-between gap-2 pb-6 border-t pt-4">
-                        <DialogClose asChild>
-                            <Button type="button" variant="secondary">
-                                Cancel
-                            </Button>
-                        </DialogClose>
-                    </div>
                 </div>
             </DialogContent>
         </Dialog>

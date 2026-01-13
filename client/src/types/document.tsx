@@ -2,6 +2,7 @@ export interface Document {
     id: string;
     name: string;
     mime_type: string;
+    folder_id?: string | null;
 }
 
 export interface DocumentMetadata {

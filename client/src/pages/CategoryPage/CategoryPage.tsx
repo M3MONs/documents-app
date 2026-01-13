@@ -190,6 +190,7 @@ const CategoryPage = () => {
                     <DocumentManageDialog
                         isOpen={isManageDialogOpen}
                         selectedDocument={selectedItem}
+                        categoryId={categoryId}
                         onClose={() => {
                             setSelectedItem(null);
                             setIsManageDialogOpen(false);

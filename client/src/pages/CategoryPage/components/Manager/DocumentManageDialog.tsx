@@ -3,14 +3,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { File } from "lucide-react";
 import { useState } from "react";
 import SettingsTab from "./tabs/document/SettingsTab";
+import LocationTab from "./tabs/document/LocationTab";
 
 interface DocumentManageDialogProps {
     isOpen: boolean;
     selectedDocument: any | null;
     onClose: () => void;
+    categoryId?: string;
 }
 
-const DocumentManageDialog = ({ isOpen, selectedDocument, onClose }: DocumentManageDialogProps) => {
+const DocumentManageDialog = ({ isOpen, selectedDocument, onClose, categoryId }: DocumentManageDialogProps) => {
     const [activeTab, setActiveTab] = useState("settings");
 
     return (
@@ -38,6 +40,9 @@ const DocumentManageDialog = ({ isOpen, selectedDocument, onClose }: DocumentMan
                     </TabsList>
                     <TabsContent value="settings" className="">
                         <SettingsTab selectedDocument={selectedDocument} />
+                    </TabsContent>
+                    <TabsContent value="location" className="">
+                        <LocationTab selectedDocument={selectedDocument} categoryId={categoryId || ''} />
                     </TabsContent>
                 </Tabs>
             </DialogContent>

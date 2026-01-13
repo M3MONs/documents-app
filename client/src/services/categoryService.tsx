@@ -46,4 +46,9 @@ export default class CategoryService {
         });
         return response.data;
     };
+
+    static getCategoryFolderTree = async (categoryId: string) => {
+        const response = await apiClient.get(`${URL}/${categoryId}/folder-tree`);
+        return response.data;
+    };
 }

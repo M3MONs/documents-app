@@ -1,5 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel
+from typing import Optional
 
 
 class DocumentItem(BaseModel):
@@ -19,3 +20,6 @@ class DocumentMetadata(BaseModel):
 
 class UpdateDocumentRequest(BaseModel):
     name: str
+
+class MoveDocumentRequest(BaseModel):
+    folder_id: Optional[str] = None

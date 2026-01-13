@@ -8,7 +8,8 @@ from core.database import get_db
 from models.user import User
 from repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.document import UpdateDocumentRequest
+from schemas.document import UpdateDocumentRequest, MoveDocumentRequest
+from services.folder_service import FolderService
 from services.document_service import DocumentService
 from services.category_service import CategoryService
 
@@ -142,3 +143,46 @@ async def update_document(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred while updating the document: {str(e)}") from e
+
+
+@router.put("/{document_id}/move")
+async def move_document(
+    document_id: str,
+    request: MoveDocumentRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    try:
+        try:
+            document_id_uuid = uuid.UUID(document_id)
+            folder_id_uuid = uuid.UUID(request.folder_id) if request.folder_id else None
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid UUID format: {str(e)}")
+
+        document = await DocumentService.get_document_by_id(db, document_id_uuid)
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        category = await CategoryService.get_category_by_id(db, document.category_id)  # type: ignore
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+        await verify_category_manager_access(
+            db,
+            current_user,
+            category.organization_id,  # type: ignore
+        )
+
+        if folder_id_uuid:
+            target_folder = await FolderService.get_folder_by_id(db, folder_id_uuid)
+            if not target_folder:
+                raise HTTPException(status_code=404, detail="Target folder not found")
+            if target_folder.category_id != document.category_id:  # type: ignore
+                raise HTTPException(status_code=400, detail="Target folder must belong to the same category")
+
+        await DocumentService.move_document(db, document_id_uuid, folder_id_uuid)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while moving the document: {str(e)}") from e

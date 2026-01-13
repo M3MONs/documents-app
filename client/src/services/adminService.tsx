@@ -329,4 +329,8 @@ export default class AdminService {
         const response = await apiClient.put(`${URL}/documents/${documentId}`, payload);
         return response.data;
     };
+
+    static moveDocument = async (documentId: string, folderId: string | null) => {
+        await apiClient.put(`${URL}/documents/${documentId}/move`, { folder_id: folderId });
+    };
 }

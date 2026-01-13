@@ -15,131 +15,138 @@ import OrganizationAssignments from "./components/OrganizationAssignments/Organi
 import { useAuth } from "@/context/AuthContext";
 
 declare module "@tanstack/react-table" {
-    interface ColumnMeta<TData extends RowData, TValue> {
-        filterable?: boolean;
-    }
+  interface ColumnMeta<TData extends RowData, TValue> {
+    filterable?: boolean;
+  }
 }
 
 const AdminOrganizationsPage = () => {
-    const { user } = useAuth();
-    const queryClient = useQueryClient();
-    const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
 
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [isEditOrganizationOpen, setIsEditOrganizationOpen] = useState(false);
-    const [isCreateOrganizationOpen, setIsCreateOrganizationOpen] = useState(false);
-    const [isOrganizationAssignmentsOpen, setIsOrganizationAssignmentsOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditOrganizationOpen, setIsEditOrganizationOpen] = useState(false);
+  const [isCreateOrganizationOpen, setIsCreateOrganizationOpen] = useState(false);
+  const [isOrganizationAssignmentsOpen, setIsOrganizationAssignmentsOpen] = useState(false);
 
-    const [sorting, setSorting] = useState<SortingState>([]);
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-    const [{ pageIndex, pageSize }, setPagination] = useState({
-        pageIndex: 0,
-        pageSize: 10,
-    });
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [{ pageIndex, pageSize }, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
-    const refreshData = () => {
-        queryClient.invalidateQueries({ queryKey: ["admin/organizations"] });
-    };
+  const refreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin/organizations"] });
+  };
 
-    const handleAddAction = () => {
-        setIsCreateOrganizationOpen(true);
-    };
+  const handleAddAction = () => {
+    setIsCreateOrganizationOpen(true);
+  };
 
-    const handleEditAction = (organization: Organization) => {
-        setSelectedOrganization(organization);
-        setIsEditOrganizationOpen(true);
-    };
+  const handleEditAction = (organization: Organization) => {
+    setSelectedOrganization(organization);
+    setIsEditOrganizationOpen(true);
+  };
 
-    const handleDeleteAction = (organization: Organization) => {
-        setSelectedOrganization(organization);
-        setIsDeleteDialogOpen(true);
-    };
+  const handleDeleteAction = (organization: Organization) => {
+    setSelectedOrganization(organization);
+    setIsDeleteDialogOpen(true);
+  };
 
-    const handleAssignmentsAction = (organization: Organization) => {
-        setSelectedOrganization(organization);
-        setIsOrganizationAssignmentsOpen(true);
-    };
+  const handleAssignmentsAction = (organization: Organization) => {
+    setSelectedOrganization(organization);
+    setIsOrganizationAssignmentsOpen(true);
+  };
 
-    const handleDeleteConfirm = async () => {
-        if (!selectedOrganization) return;
+  const handleDeleteConfirm = async () => {
+    if (!selectedOrganization) return;
 
-        try {
-            await AdminService.deleteOrganization(selectedOrganization.id);
-            setIsDeleteDialogOpen(false);
-        } catch (err: any) {
-            handleApiError(err);
-        } finally {
-            setIsDeleteDialogOpen(false);
-            setSelectedOrganization(null);
-            refreshData();
-        }
-    };
-
-    const handleCreateEditClose = () => {
-        setIsEditOrganizationOpen(false);
-        setIsCreateOrganizationOpen(false);
-        setSelectedOrganization(null);
-    };
-
-    const { data, isLoading, error } = usePaginationQuery(
-        ["admin/organizations"],
-        pageIndex,
-        pageSize,
-        sorting,
-        columnFilters,
-        AdminService.getOrganizations
-    );
-
-    if (error) {
-        handleApiError(error);
+    try {
+      await AdminService.deleteOrganization(selectedOrganization.id);
+      setIsDeleteDialogOpen(false);
+    } catch (err: any) {
+      handleApiError(err);
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setSelectedOrganization(null);
+      refreshData();
     }
+  };
 
-    const handlePaginationChange = (updaterOrValue: Updater<{ pageIndex: number; pageSize: number }>) => {
-        setPagination((prev) => (typeof updaterOrValue === "function" ? updaterOrValue(prev) : updaterOrValue));
-    };
+  const handleCreateEditClose = () => {
+    setIsEditOrganizationOpen(false);
+    setIsCreateOrganizationOpen(false);
+    setSelectedOrganization(null);
+  };
 
-    return (
-        <div className="p-4">
-            <TableLayout
-                data={data}
-                columns={columns(handleEditAction, handleDeleteAction, handleAssignmentsAction, user?.is_superuser || false)}
-                isLoading={isLoading}
-                sorting={sorting}
-                columnFilters={columnFilters}
-                pageIndex={pageIndex}
-                pageSize={pageSize}
-                setSorting={setSorting}
-                setColumnFilters={setColumnFilters}
-                setPagination={handlePaginationChange}
-                isAddButtonVisible={true}
-                onAddButtonClick={handleAddAction}
-            />
+  const { data, isLoading, error } = usePaginationQuery(
+    ["admin/organizations"],
+    pageIndex,
+    pageSize,
+    sorting,
+    columnFilters,
+    AdminService.getOrganizations
+  );
 
-            {/* Delete Organization Confirmation Dialog */}
-            <DeactivateDialog
-                isOpen={isDeleteDialogOpen}
-                onClose={() => setIsDeleteDialogOpen(false)}
-                onConfirm={handleDeleteConfirm}
-                text={selectedOrganization?.name}
-                title="Delete"
-                confirmText="Delete"
-                description={`This action will permanently delete the organization "${selectedOrganization?.name}". This action cannot be undone. Are you sure you want to proceed?`}
-            />
+  if (error) {
+    handleApiError(error);
+  }
 
-            <CreateEditOrganization
-                isOpen={isEditOrganizationOpen || isCreateOrganizationOpen}
-                onClose={handleCreateEditClose}
-                onConfirm={() => refreshData()}
-                organization={selectedOrganization || undefined}
-            />
+  const handlePaginationChange = (updaterOrValue: Updater<{ pageIndex: number; pageSize: number }>) => {
+    setPagination((prev) => (typeof updaterOrValue === "function" ? updaterOrValue(prev) : updaterOrValue));
+  };
 
-            <OrganizationAssignments
-                isOpen={isOrganizationAssignmentsOpen}
-                selectedOrganization={selectedOrganization}
-                onClose={() => {setIsOrganizationAssignmentsOpen(false); setSelectedOrganization(null)}}
-            />
-        </div>
-    );
+  return (
+    <div className="p-4">
+      <TableLayout
+        data={data}
+        columns={columns(handleEditAction, handleDeleteAction, handleAssignmentsAction, user?.is_superuser || false)}
+        isLoading={isLoading}
+        sorting={sorting}
+        columnFilters={columnFilters}
+        pageIndex={pageIndex}
+        pageSize={pageSize}
+        setSorting={setSorting}
+        setColumnFilters={setColumnFilters}
+        setPagination={handlePaginationChange}
+        isAddButtonVisible={true}
+        onAddButtonClick={handleAddAction}
+      />
+
+      {/* Delete Organization Confirmation Dialog */}
+      <DeactivateDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        text={selectedOrganization?.name}
+        title="Delete"
+        confirmText="Delete"
+        description={`This action will permanently delete the organization "${selectedOrganization?.name}". This action cannot be undone. Are you sure you want to proceed?`}
+      />
+
+      <CreateEditOrganization
+        isOpen={isEditOrganizationOpen || isCreateOrganizationOpen}
+        onClose={handleCreateEditClose}
+        onConfirm={() => {
+          setIsEditOrganizationOpen(false);
+          setIsCreateOrganizationOpen(false);
+          refreshData();
+        }}
+        organization={selectedOrganization || undefined}
+      />
+
+      <OrganizationAssignments
+        isOpen={isOrganizationAssignmentsOpen}
+        selectedOrganization={selectedOrganization}
+        onClose={() => {
+          setIsOrganizationAssignmentsOpen(false);
+          setSelectedOrganization(null);
+        }}
+      />
+    </div>
+  );
 };
 
 export default AdminOrganizationsPage;

@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 
 class FolderItem(BaseModel):
@@ -15,3 +16,11 @@ class FolderUpdate(BaseModel):
     name: str
     is_private: bool
     apply_to_children: bool
+
+
+class FolderTreeNode(BaseModel):
+    id: str
+    name: str
+    children: List['FolderTreeNode'] = []
+
+FolderTreeNode.model_rebuild()

@@ -8,6 +8,8 @@ from routes.auth import get_current_user
 from schemas.pagination import PaginationParams
 from services.category_service import CategoryService
 from schemas.category import Category as CategorySchema, CategoryContentResponse
+from schemas.folder import FolderTreeNode
+from services.folder_service import FolderService
 
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -68,3 +70,17 @@ async def get_folder_breadcrumb(
         raise HTTPException(status_code=404, detail="Category not found")
     
     return await CategoryService.get_folder_breadcrumb(db, category, folder_id)
+
+
+@router.get("/{category_id}/folder-tree", response_model=list[FolderTreeNode])
+async def get_category_folder_tree(
+    category_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[FolderTreeNode]:
+    category = await CategoryService.get_category_for_user(db, category_id, current_user.id) # type: ignore
+    
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    return await FolderService.get_category_folder_tree(db, category_id)

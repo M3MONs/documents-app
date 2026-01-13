@@ -6,7 +6,7 @@ import TableLayout from "@/components/layouts/TableLayout";
 import type { Department } from "@/types/department";
 import { handleApiError } from "@/utils/errorHandler";
 import type { PaginationParams } from "@/types/pagination";
-import { getDepartmentsColumns } from "../columns/departmentsColumns.tsx";
+import { getDepartmentsColumns } from "../../columns/departmentsColumns.tsx";
 import { toast } from "sonner";
 
 interface DepartmentsTabProps {

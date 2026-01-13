@@ -2,9 +2,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Folder } from "lucide-react";
 import { useState } from "react";
-import DepartmentsTab from "./tabs/DepartmentsTab.tsx";
-import SettingsTab from "./tabs/SettingsTab.tsx";
-import UsersTab from "./tabs/UsersTab.tsx";
+import DepartmentsTab from "./tabs/folder/DepartmentsTab.tsx";
+import SettingsTab from "./tabs/folder/SettingsTab.tsx";
+import UsersTab from "./tabs/folder/UsersTab.tsx";
 
 interface FolderManageDialogProps {
   isOpen: boolean;

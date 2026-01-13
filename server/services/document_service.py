@@ -2,6 +2,7 @@ import os
 import uuid
 import hashlib
 import mimetypes
+import asyncio
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import select
@@ -13,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
 from models.user import User
+from models.folder import Folder
 from services.folder_service import FolderService
 
 
@@ -248,3 +250,46 @@ class DocumentService:
             os.rename(file_path, new_file_path)
         except OSError as e:
             raise HTTPException(status_code=500, detail=f"Failed to rename file on filesystem: {str(e)}")
+
+    @staticmethod
+    async def move_document(db: AsyncSession, document_id: uuid.UUID, new_folder_id: Optional[uuid.UUID]) -> None:
+        document = await DocumentService.get_document_by_id(db, document_id)
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        category_id = document.category_id  # type: ignore
+        document_name = document.name  # type: ignore
+        old_file_path_str = await DocumentService.get_file_path(db, document)
+
+        new_folder = None
+        if new_folder_id:
+            new_folder = await FolderService.get_folder_by_id(db, new_folder_id)
+            if not new_folder:
+                raise HTTPException(status_code=404, detail="New folder not found")
+            if new_folder.category_id != category_id:  # type: ignore
+                raise HTTPException(status_code=400, detail="Cannot move document to folder in different category")
+
+        new_file_path_str = await DocumentService._get_file_path_for_folder(db, document, new_folder)
+
+        existing = await DocumentService.get_by_folder_and_name(db, category_id, new_folder_id, document_name) # type: ignore
+        if existing and existing.id is not document_id:
+            raise HTTPException(status_code=409, detail="Document with this name already exists in the target folder")
+
+        async def move_file() -> None:
+            file_exists = await asyncio.to_thread(os.path.exists, old_file_path_str)
+            if file_exists:
+                await asyncio.to_thread(os.makedirs, os.path.dirname(new_file_path_str), exist_ok=True)
+                await asyncio.to_thread(os.rename, old_file_path_str, new_file_path_str)
+
+        await move_file()
+
+        document.folder_id = new_folder_id # type: ignore
+        await BaseRepository.update(db, document)
+
+    @staticmethod
+    async def _get_file_path_for_folder(db: AsyncSession, document: Document, folder: Optional[Folder]) -> str:
+        if folder is None:
+            return os.path.join(settings.MEDIA_ROOT, "categories", str(document.category_id), str(document.name))
+        
+        folder_path = await FolderService.convert_ltree_to_path(folder.path)
+        return os.path.join(settings.MEDIA_ROOT, "categories", str(document.category_id), folder_path, str(document.name))

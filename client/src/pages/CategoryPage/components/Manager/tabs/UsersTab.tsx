@@ -7,7 +7,7 @@ import type { Department } from "@/types/department";
 import { handleApiError } from "@/utils/errorHandler";
 import type { PaginationParams } from "@/types/pagination";
 import { toast } from "sonner";
-import { getUsersColumns } from "./usersColumns.tsx";
+import { getUsersColumns } from "../columns/usersColumns.tsx";
 
 interface UsersTabProps {
   selectedFolder: any | null;

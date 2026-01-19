@@ -1,5 +1,6 @@
 import asyncio
 import os
+import shutil
 from typing import Any, Dict, Optional
 import uuid
 from fastapi import HTTPException
@@ -178,7 +179,7 @@ class FolderService:
     @staticmethod
     async def convert_ltree_to_path(ltree_str: Any) -> str:
         return str(ltree_str).replace(".", os.sep)
-    
+
     @staticmethod
     async def get_category_folder_tree(db: AsyncSession, category_id: uuid.UUID) -> list[FolderTreeNode]:
         root_folders = await FolderRepository.get_folders_by_parent(db, category_id, parent_id=None)
@@ -188,12 +189,87 @@ class FolderService:
         return tree
 
     @staticmethod
+    async def _validate_folder_exists(db: AsyncSession, folder_id: uuid.UUID) -> Folder:
+        folder = await FolderService.get_folder_by_id_with_category(db, folder_id)
+        if not folder:
+            raise HTTPException(status_code=404, detail="Folder not found")
+        return folder
+
+    @staticmethod
+    async def _get_folders_to_delete(db: AsyncSession, folder_id: uuid.UUID) -> list[Folder]:
+        child_folders = list(await FolderRepository.get_all_child_folders(db, folder_id))
+        root_folder = await FolderService.get_folder_by_id(db, folder_id)
+        if root_folder:
+            child_folders.insert(0, root_folder)
+        return child_folders
+
+    @staticmethod
+    async def _delete_documents_for_folder(db: AsyncSession, folder_to_delete: Folder) -> None:
+        from repositories.document_repository import DocumentRepository
+
+        documents = await DocumentRepository.get_documents_by_folder(db, folder_to_delete.category_id, folder_to_delete.id)  # type: ignore
+
+        for doc in documents:
+            if doc.folder_id is None:
+                file_path = os.path.join(settings.MEDIA_ROOT, "categories", str(doc.category_id), str(doc.name))
+            else:
+                doc_folder = await FolderService.get_folder_by_id(db, doc.folder_id)  # type: ignore
+                if doc_folder:
+                    folder_path = str(await FolderService.convert_ltree_to_path(doc_folder.path) if doc_folder.path else doc_folder.name)  # type: ignore
+                    file_path = os.path.join(settings.MEDIA_ROOT, "categories", str(doc.category_id), folder_path, str(doc.name))
+                else:
+                    file_path = os.path.join(settings.MEDIA_ROOT, "categories", str(doc.category_id), str(doc.name))
+
+            await db.delete(doc)
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception:
+                await db.rollback()
+                raise HTTPException(status_code=500, detail="Failed to delete document file, database changes rolled back")
+
+    @staticmethod
+    async def _delete_folders_from_db(db: AsyncSession, folders: list[Folder]) -> None:
+        for folder_to_delete in reversed(folders):
+            await db.delete(folder_to_delete)
+
+    @staticmethod
+    async def _delete_folder_from_filesystem(db: AsyncSession, folder: Folder) -> None:
+        folder_path = os.path.join(
+            settings.MEDIA_ROOT,
+            "categories",
+            str(folder.category_id),
+            str(folder.name) if folder.path is None else await FolderService.convert_ltree_to_path(folder.path),
+        )
+        try:
+            if os.path.exists(folder_path):
+                shutil.rmtree(folder_path)
+        except Exception:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail="Failed to delete folder from disk, database changes rolled back")
+
+    @staticmethod
+    async def delete_folder(db: AsyncSession, folder_id: uuid.UUID) -> None:
+        folder = await FolderService._validate_folder_exists(db, folder_id)
+
+        all_folders_to_delete = await FolderService._get_folders_to_delete(db, folder_id)
+
+        for folder_to_delete in all_folders_to_delete:
+            await FolderService._delete_documents_for_folder(db, folder_to_delete)
+
+        await FolderService._delete_folders_from_db(db, all_folders_to_delete)
+
+        await FolderService._delete_folder_from_filesystem(db, folder)
+
+        await db.commit()
+
+    @staticmethod
     async def _build_folder_tree_node(db: AsyncSession, folder: Folder) -> FolderTreeNode:
         children_folders = await FolderRepository.get_folders_by_parent(db, folder.category_id, parent_id=folder.id)  # type: ignore
         children = [await FolderService._build_folder_tree_node(db, child) for child in children_folders]
-        
+
         return FolderTreeNode(
             id=str(folder.id),  # type: ignore
             name=folder.name,  # type: ignore
-            children=children
+            children=children,
         )

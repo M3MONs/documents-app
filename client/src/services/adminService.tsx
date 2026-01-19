@@ -290,6 +290,10 @@ export default class AdminService {
         await apiClient.patch(`${URL}/folders/${folderId}/privacy`, { is_private: isPrivate });
     };
 
+    static deleteFolder = async (folderId: string) => {
+        await apiClient.delete(`${URL}/folders/${folderId}`);
+    };
+
     static getFolderUsers = async (folderId: string, pagination: PaginationParams) => {
         const params = { ...pagination };
 
@@ -332,5 +336,9 @@ export default class AdminService {
 
     static moveDocument = async (documentId: string, folderId: string | null) => {
         await apiClient.put(`${URL}/documents/${documentId}/move`, { folder_id: folderId });
+    };
+
+    static deleteDocument = async (documentId: string) => {
+        await apiClient.delete(`${URL}/documents/${documentId}`);
     };
 }

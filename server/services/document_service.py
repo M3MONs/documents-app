@@ -287,9 +287,28 @@ class DocumentService:
         await BaseRepository.update(db, document)
 
     @staticmethod
+    async def delete_document(db: AsyncSession, document_id: uuid.UUID) -> None:
+        document = await DocumentService.get_document_by_id(db, document_id)
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        file_path = await DocumentService.get_file_path(db, document)
+
+        await db.delete(document)
+
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail="Failed to delete document file, database changes rolled back")
+
+        await db.commit()
+
+    @staticmethod
     async def _get_file_path_for_folder(db: AsyncSession, document: Document, folder: Optional[Folder]) -> str:
         if folder is None:
             return os.path.join(settings.MEDIA_ROOT, "categories", str(document.category_id), str(document.name))
-        
+
         folder_path = await FolderService.convert_ltree_to_path(folder.path)
         return os.path.join(settings.MEDIA_ROOT, "categories", str(document.category_id), folder_path, str(document.name))

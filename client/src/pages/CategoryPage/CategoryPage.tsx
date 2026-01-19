@@ -16,10 +16,14 @@ import { StaticRoles } from "@/constants/roles";
 import AddDocumentDialog from "./components/Document/AddDocumentDialog";
 import DocumentManageDialog from "./components/Manager/DocumentManageDialog";
 import DeleteDialog from "./components/Manager/DeleteDialog";
+import AdminService from "@/services/adminService";
+import { useQueryClient } from "@tanstack/react-query";
+import { handleApiError } from "@/utils/errorHandler";
 
 const CategoryPage = () => {
     const { categoryId } = useParams<{ categoryId: string }>();
     const { user } = useAuth();
+    const queryClient = useQueryClient();
     const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
     const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
     const [isAddDocumentDialogOpen, setIsAddDocumentDialogOpen] = useState(false);
@@ -132,9 +136,24 @@ const CategoryPage = () => {
         setIsDeleteFolderDialogOpen(true);
     }, []);
 
-    const handleDeleteItem = useCallback(() => {
-        // Implement deletion logic here
-    }, [selectedItem]);
+    const handleDeleteItem = useCallback(async () => {
+        if (!selectedItem || !categoryId) return;
+
+        try {
+            if (selectedItem.type === "document") {
+                await AdminService.deleteDocument(selectedItem.id);
+            } else if (selectedItem.type === "folder") {
+                await AdminService.deleteFolder(selectedItem.id);
+            }
+            queryClient.invalidateQueries({
+                queryKey: ["categoryContent", categoryId],
+            });
+            setSelectedItem(null);
+            setIsDeleteFolderDialogOpen(false);
+        } catch (err: any) {
+            handleApiError(err);
+        }
+    }, [selectedItem, categoryId, queryClient]);
 
     if (!categoryId) {
         return <SelectCategoryInfo />;
@@ -181,7 +200,7 @@ const CategoryPage = () => {
                         selectedFolder={selectedItem}
                         onClose={() => {
                             setSelectedItem(null);
-                            setIsManageDialogOpen;
+                            setIsManageDialogOpen(false);
                         }}
                     />
                 )}

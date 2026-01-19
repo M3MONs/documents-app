@@ -186,3 +186,37 @@ async def move_document(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred while moving the document: {str(e)}") from e
+
+
+@router.delete("/{document_id}")
+async def delete_document(
+    document_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    try:
+        try:
+            document_id_uuid = uuid.UUID(document_id)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid UUID format: {str(e)}")
+
+        document = await DocumentService.get_document_by_id(db, document_id_uuid)
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        category = await CategoryService.get_category_by_id(db, document.category_id)  # type: ignore
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+        await verify_category_manager_access(
+            db,
+            current_user,
+            category.organization_id,  # type: ignore
+        )
+
+        await DocumentService.delete_document(db, document_id_uuid)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while deleting the document: {str(e)}")

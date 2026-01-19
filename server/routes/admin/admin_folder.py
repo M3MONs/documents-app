@@ -207,3 +207,19 @@ async def update_folder(
     await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
 
     await FolderService.update_folder(db, folder_id, folder_update)
+
+
+@router.delete("/{folder_id}")
+async def delete_folder(
+    folder_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    folder = await FolderService.get_folder_by_id_with_category(db, folder_id)
+
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    await verify_folder_manager_access(db, current_user, folder.category.organization_id)  # type: ignore
+
+    await FolderService.delete_folder(db, folder_id)

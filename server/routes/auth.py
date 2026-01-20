@@ -1,12 +1,13 @@
+from http import HTTPStatus
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
-from schemas.auth import LoginPayload, RegisterPayload, LoginResponse, LogoutResponse
+from schemas.auth import LoginPayload, RegisterPayload, LoginResponse, LogoutResponse, UpdateEmailPayload, ChangePasswordPayload
 from models.user import User
 from services.user_service import UserService
 from services.auth_service import AuthService
-from core.security import validate_access_token, validate_refresh_token
+from core.security import hash_password, validate_access_token, validate_refresh_token, verify_password
 
 security = HTTPBearer()
 
@@ -101,3 +102,30 @@ async def register(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration failed")
 
     return AuthService.create_login_response(user, response)
+
+
+@router.put("/update-email")
+async def update_email(
+    payload: UpdateEmailPayload,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> HTTPStatus:
+    if await UserService.is_email_taken(db, payload.email, exclude_user_id=current_user.id):  # type: ignore
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already in use")
+
+    await UserService.update_email(db, current_user.id, payload.email)  # type: ignore
+    return HTTPStatus.NO_CONTENT
+
+
+@router.put("/change-password")
+async def change_password(
+    payload: ChangePasswordPayload,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> HTTPStatus:
+    if not verify_password(payload.current_password, current_user.hashed_password):  # type: ignore
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+
+    hashed_password = hash_password(payload.new_password)
+    await UserService.update_password(db, current_user.id, hashed_password)  # type: ignore
+    return HTTPStatus.NO_CONTENT

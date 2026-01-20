@@ -1,4 +1,4 @@
-import { ChevronsUpDown, LogOut, SunMoon } from "lucide-react";
+import { ChevronsUpDown, LogOut, SunMoon, User } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -76,6 +76,11 @@ export function NavUser() {
                                 </div>
                             </div>
                         </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate("/profile")}>
+                            <User />
+                            Profile
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={handleSwitchTheme}>
                             <SunMoon />

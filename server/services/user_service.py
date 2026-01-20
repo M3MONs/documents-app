@@ -26,8 +26,10 @@ class UserService:
         return user is not None
 
     @staticmethod
-    async def is_email_taken(db: AsyncSession, email: str) -> bool:
+    async def is_email_taken(db: AsyncSession, email: str, exclude_user_id: uuid.UUID | None = None) -> bool:
         user = await UserRepository.get_by_email(db, email=email)
+        if user is not None and exclude_user_id is not None and user.id == exclude_user_id: # type: ignore
+            return False
         return user is not None
 
     @staticmethod
@@ -83,3 +85,17 @@ class UserService:
     @staticmethod
     async def unassign_user_from_organization(db: AsyncSession, user_id: uuid.UUID, organization_id: uuid.UUID) -> None:
         await UserRepository.unassign_user_from_organization(db, user_id, organization_id)
+
+    @staticmethod
+    async def update_email(db: AsyncSession, user_id: uuid.UUID, email: str) -> None:
+        user = await BaseRepository.get_by_id(model=User, db=db, entity_id=user_id)
+        if user:
+            setattr(user, "email", email)
+            await BaseRepository.update(db, user)
+
+    @staticmethod
+    async def update_password(db: AsyncSession, user_id: uuid.UUID, hashed_password: str) -> None:
+        user = await BaseRepository.get_by_id(model=User, db=db, entity_id=user_id)
+        if user:
+            setattr(user, "hashed_password", hashed_password)
+            await BaseRepository.update(db, user)

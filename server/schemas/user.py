@@ -2,6 +2,7 @@ from typing import Any
 import uuid
 from pydantic import BaseModel, Field, field_validator, model_validator
 from schemas.organization import Organization
+from schemas.department import Department
 
 
 class PasswordResetPayload(BaseModel):
@@ -39,6 +40,7 @@ class User(BaseModel):
     is_superuser: bool | None = None
     primary_organization: Organization | None = None
     additional_organizations: list[Organization] = []
+    departments: list[Department] = []
     
     roles: list[str] = Field(default_factory=list)
     organization_roles: dict[uuid.UUID, list[str]] = Field(default_factory=dict)

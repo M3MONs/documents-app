@@ -1,4 +1,5 @@
 import type { Organization } from "./organization";
+import type { Department } from "./department";
 
 export interface User {
     id: string;
@@ -10,6 +11,7 @@ export interface User {
     organization_roles?: Record<string, string[]> | null;
     primary_organization?: Organization | null;
     additional_organizations?: Organization[] | null;
+    departments?: Department[] | null;
     is_assigned?: boolean | null;
     is_primary?: boolean | null;
 }

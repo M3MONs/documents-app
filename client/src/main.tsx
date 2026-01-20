@@ -12,7 +12,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import AdminPages from "@/pages/Admin/AdminPages";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import CategoryPage from "./pages/CategoryPage/CategoryPage";
+import CategoryPage from "@/pages/CategoryPage/CategoryPage";
+import UserProfilePage from "@/pages/UserProfilePage/UserProfilePage";
 
 createRoot(document.getElementById("root")!).render(
     <StrictMode>
@@ -21,10 +22,11 @@ createRoot(document.getElementById("root")!).render(
                 <AuthProvider>
                     <BrowserRouter>
                         <Routes>
-                            <Route element={<ProtectedRoute />}>
-                                <Route path="/" element={<HomePage />} />
-                                <Route path="/categories/:categoryId" element={<CategoryPage />} />
-                            </Route>
+                             <Route element={<ProtectedRoute />}>
+                                 <Route path="/" element={<HomePage />} />
+                                 <Route path="/categories/:categoryId" element={<CategoryPage />} />
+                                 <Route path="/profile" element={<UserProfilePage />} />
+                             </Route>
 
                             <Route path="/admin/*" element={<AdminPages />} />
 

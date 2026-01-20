@@ -2,6 +2,11 @@
 
 A comprehensive full-stack document management system built with FastAPI backend and React frontend. This application allows users to organize, upload, and manage documents within structured organizations, categories, and folders with robust role-based access control.
 
+<img width="1920" height="945" alt="screencapture-localhost-5173-login-2026-01-19-19_54_53" src="https://github.com/user-attachments/assets/d70733b6-9bfe-4505-9fee-88fe9041c5a0" />
+<img width="1920" height="945" alt="screencapture-localhost-5173-2026-01-19-19_55_11" src="https://github.com/user-attachments/assets/607ae9c0-a2dd-4fa9-a3db-62a934393cb2" />
+<img width="1920" height="945" alt="screencapture-localhost-5173-categories-1b9f5a48-d7d5-4095-b4b9-4f3d6c0c4686-2026-01-19-19_56_22" src="https://github.com/user-attachments/assets/e3117371-e4c5-45ac-a619-f9051a71e943" />
+<img width="1920" height="945" alt="screencapture-localhost-5173-categories-1b9f5a48-d7d5-4095-b4b9-4f3d6c0c4686-2026-01-19-19_56_38" src="https://github.com/user-attachments/assets/02823137-a271-4915-90d1-b3d236e66623" />
+
 ## Features
 
 - **User Authentication & Authorization**: JWT-based authentication

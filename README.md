@@ -69,15 +69,9 @@ A comprehensive full-stack document management system built with FastAPI backend
    ```
    Edit `.env` with your database URL and other configuration.
 
-5. Run database migrations:
+5. Start the backend server:
    ```bash
-   # Assuming you have alembic configured
-   alembic upgrade head
-   ```
-
-6. Start the backend server:
-   ```bash
-   uvicorn main:app --reload
+   fastapi dev main.py
    ```
 
 The API will be available at `http://localhost:8000`
